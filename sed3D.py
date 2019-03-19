@@ -4,12 +4,12 @@ import numpy as np
 import time
 import sys
 import matplotlib.pyplot as plot
-from keras.layers import Bidirectional, TimeDistributed, Conv2D, MaxPooling2D, Input, GRU, Dense, Activation, Dropout, Reshape, Permute
+from keras.layers import Bidirectional, TimeDistributed, Conv2D, Conv3D, MaxPooling2D, MaxPooling3D, Input, GRU, Dense, Activation, Dropout, Reshape, Permute
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from sklearn.metrics import confusion_matrix
 import metrics
-import utils
+import utils3D
 from IPython import embed
 import keras.backend as K
 K.set_image_data_format('channels_first')
@@ -24,16 +24,26 @@ def load_data(_feat_folder, _mono, _fold=None):
     return _X_train, _Y_train, _X_test, _Y_test
 
 
-def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
+def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, _nb_ch):
 
-    spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
+    spec_start = Input(shape=(1, data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
     spec_x = spec_start
+#3D + 2D --------------------------
     for _i, _cnt in enumerate(_cnn_pool_size):
-        spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
-        spec_x = BatchNormalization(axis=1)(spec_x)
-        spec_x = Activation('relu')(spec_x)
-        spec_x = MaxPooling2D(pool_size=(1, _cnn_pool_size[_i]))(spec_x)
-        spec_x = Dropout(dropout_rate)(spec_x)
+        if _i == 0:
+            spec_x = Conv3D(filters=_cnn_nb_filt, kernel_size=(_nb_ch, 3, 3), padding='same')(spec_x)
+            spec_x = BatchNormalization(axis=1)(spec_x)
+            spec_x = Activation('relu')(spec_x)
+            spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size[_i]))(spec_x)
+            spec_x = Dropout(dropout_rate)(spec_x)
+            print(spec_x)
+            spec_x = Reshape((-1,256,8))(spec_x)
+        else:
+            spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
+            spec_x = BatchNormalization(axis=1)(spec_x)
+            spec_x = Activation('relu')(spec_x)
+            spec_x = MaxPooling2D(pool_size=(1, _cnn_pool_size[_i]))(spec_x)
+            spec_x = Dropout(dropout_rate)(spec_x)
     spec_x = Permute((2, 1, 3))(spec_x)
     spec_x = Reshape((data_in.shape[-2], -1))(spec_x)
 
@@ -77,14 +87,14 @@ def plot_functions(_nb_epoch, _tr_loss, _val_loss, _f1, _er, extension=''):
 
 def preprocess_data(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
     # split into sequences
-    _X = utils.split_in_seqs(_X, _seq_len)
-    _Y = utils.split_in_seqs(_Y, _seq_len)
+    _X = utils3D.split_in_seqs(_X, _seq_len)
+    _Y = utils3D.split_in_seqs(_Y, _seq_len)
 
-    _X_test = utils.split_in_seqs(_X_test, _seq_len)
-    _Y_test = utils.split_in_seqs(_Y_test, _seq_len)
+    _X_test = utils3D.split_in_seqs(_X_test, _seq_len)
+    _Y_test = utils3D.split_in_seqs(_Y_test, _seq_len)
 
-    _X = utils.split_multi_channels(_X, _nb_ch)
-    _X_test = utils.split_multi_channels(_X_test, _nb_ch)
+    _X = utils3D.split_multi_channels(_X, _nb_ch)
+    _X_test = utils3D.split_multi_channels(_X_test, _nb_ch)
     return _X, _Y, _X_test, _Y_test
 
 
@@ -94,12 +104,12 @@ def preprocess_data(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
 
 is_mono = False  # True: mono-channel input, False: binaural input
 
-feat_folder = '/proj/asignal/DCASE2017/task_3/feat/'
+feat_folder = 'feat/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 128    # Decrease this if you want to run on smaller GPU's
+batch_size =  8   # Decrease this if you want to run on smaller GPU's ----128
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 500      # Training epochs
 patience = int(0.25 * nb_epoch)  # Patience for early stopping
@@ -116,7 +126,7 @@ print('TRAINING PARAMETERS: nb_ch: {}, seq_len: {}, batch_size: {}, nb_epoch: {}
 
 # Folder for saving model and training curves
 __models_dir = 'models/'
-utils.create_folder(__models_dir)
+utils3D.create_folder(__models_dir)
 
 # CRNN model definition
 cnn_nb_filt = 128            # CNN filter size
@@ -135,15 +145,21 @@ for fold in [1, 2, 3, 4]:
     print('----------------------------------------------\n')
     # Load feature and labels, pre-process it
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
+    #print(X.shape)
+    #print(Y.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
+    print(X.shape)
+    print(Y.shape)
+
 
     # Load model
-    model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
+    model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb, nb_ch)
 
     # Training
     best_epoch, pat_cnt, best_er, f1_for_best_er, best_conf_mat = 0, 0, 99999, None, None
     tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list = [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch
     posterior_thresh = 0.5
+    #print(X)
     for i in range(nb_epoch):
         print('Epoch : {} '.format(i), end='')
         hist = model.fit(
@@ -151,7 +167,7 @@ for fold in [1, 2, 3, 4]:
             batch_size=batch_size,
             validation_data=[X_test, Y_test],
             epochs=1,
-            verbose=2
+            verbose=1
         )
         val_loss[i] = hist.history.get('val_loss')[-1]
         tr_loss[i] = hist.history.get('loss')[-1]
@@ -169,7 +185,7 @@ for fold in [1, 2, 3, 4]:
         test_pred_cnt = np.sum(pred_thresh, 2)
         Y_test_cnt = np.sum(Y_test, 2)
         conf_mat = confusion_matrix(Y_test_cnt.reshape(-1), test_pred_cnt.reshape(-1))
-        conf_mat = conf_mat / (utils.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
+        conf_mat = conf_mat / (utils3D.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
 
         if er_overall_1sec_list[i] < best_er:
             best_conf_mat = conf_mat
