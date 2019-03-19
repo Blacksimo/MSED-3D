@@ -94,12 +94,12 @@ def preprocess_data(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
 
 is_mono = False  # True: mono-channel input, False: binaural input
 
-feat_folder = '/proj/asignal/DCASE2017/task_3/feat/'
+feat_folder = 'feat/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 128    # Decrease this if you want to run on smaller GPU's
+batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 500      # Training epochs
 patience = int(0.25 * nb_epoch)  # Patience for early stopping
@@ -151,7 +151,7 @@ for fold in [1, 2, 3, 4]:
             batch_size=batch_size,
             validation_data=[X_test, Y_test],
             epochs=1,
-            verbose=2
+            verbose=1
         )
         val_loss[i] = hist.history.get('val_loss')[-1]
         tr_loss[i] = hist.history.get('loss')[-1]
