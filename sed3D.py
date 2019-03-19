@@ -148,8 +148,8 @@ for fold in [1, 2, 3, 4]:
     #print(X.shape)
     #print(Y.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-    print(X.shape)
-    print(Y.shape)
+    #print(X.shape)
+    #print(Y.shape)
 
 
     # Load model
