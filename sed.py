@@ -135,8 +135,9 @@ for fold in [1, 2, 3, 4]:
     print('----------------------------------------------\n')
     # Load feature and labels, pre-process it
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
+    print("X SHAPE: ", X.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-
+    print("X SHAPE: ", X.shape)
     # Load model
     model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
 
