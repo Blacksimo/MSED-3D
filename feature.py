@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 #Plot mesh import
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-
+from scipy import signal
+from scipy.io import wavfile
 
 def load_audio(filename, mono=True, fs=44100):
     """Load audio file into numpy array
@@ -105,16 +106,33 @@ def load_desc_file(_desc_file):
 def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
-    """
-    fig = plt.figure()
-    mesh = plt.imshow(spec,cmap=cm.get_cmap("rainbow")) # drawing the function 
-    plt.colorbar()  
-    plt.clim(0,0.2,)
+    print 'shape y: ', _y.shape    
+    print 'shape spec: ', spec.shape, spec.max(), spec.min(), spec.mean()
+    
+    plt.figure()
+    plt.imshow(spec,cmap=cm.get_cmap("rainbow")) # drawing the function 
+    plt.colorbar(extend='both')
+    #freq = np.arange(0,spec.shape[0],1)
+    #time = np.arange(0,spec.shape[1],1)
+    
+    plt.clim(0,1)
     plt.xlabel('TODO')
     plt.ylabel('TODO')
     plt.title('spec')
     plt.show()
+    
+
     """
+    sample_rate, samples = wavfile.read('../TUT-sound-events-2017-development/audio/street/b093.wav')
+    frequencies, times, spectrogram = signal.spectrogram(samples, sample_rate)  
+    print 'shape spectrogram: ', spectrogram.shape
+    plt.pcolormesh(times, frequencies, spectrogram)
+    plt.imshow(spectrogram)
+    plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.show()
+    """
+    
 
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
@@ -145,7 +163,7 @@ feat_folder = 'tmp2_feat/'
 utils.create_folder(feat_folder)
 
 # User set parameters
-nfft = 2048
+nfft = 8192 #2048
 win_len = nfft
 hop_len = win_len / 2
 nb_mel_bands = 40
