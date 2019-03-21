@@ -5,6 +5,11 @@ import librosa
 from IPython import embed
 import os
 from sklearn import preprocessing
+import matplotlib.pyplot as plt
+
+#Plot mesh import
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 
 
 def load_audio(filename, mono=True, fs=44100):
@@ -100,6 +105,17 @@ def load_desc_file(_desc_file):
 def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
+    """
+    fig = plt.figure()
+    mesh = plt.imshow(spec,cmap=cm.get_cmap("rainbow")) # drawing the function 
+    plt.colorbar()  
+    plt.clim(0,0.2,)
+    plt.xlabel('TODO')
+    plt.ylabel('TODO')
+    plt.title('spec')
+    plt.show()
+    """
+
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
     #applicamio il filtro e facciamo il logaritmo
@@ -125,7 +141,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'feat/'
+feat_folder = 'tmp2_feat/'
 utils.create_folder(feat_folder)
 
 # User set parameters
