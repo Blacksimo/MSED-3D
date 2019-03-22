@@ -121,19 +121,6 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     plt.title('spec')
     plt.show()
     
-
-    """
-    sample_rate, samples = wavfile.read('../TUT-sound-events-2017-development/audio/street/b093.wav')
-    frequencies, times, spectrogram = signal.spectrogram(samples, sample_rate)  
-    print 'shape spectrogram: ', spectrogram.shape
-    plt.pcolormesh(times, frequencies, spectrogram)
-    plt.imshow(spectrogram)
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [sec]')
-    plt.show()
-    """
-    
-
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
     #applicamio il filtro e facciamo il logaritmo

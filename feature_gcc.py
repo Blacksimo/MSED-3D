@@ -112,8 +112,26 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     # spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(
         y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
+    
+    #La precedente riga (deprecated) è completamente rimpiazzabile da:
+    D = np.abs(FFT)
+    librosa.display.specshow(librosa.amplitude_to_db(D, ref=np.max), 
+        y_axis='log', x_axis='time')
+    plt.title('Power spectrogram')
+    plt.colorbar(format='%+2.0f dB')
+    plt.tight_layout()
+    
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
+    
+    '''
+    plt.figure()
+    librosa.display.specshow(mel_basis, x_axis='linear')
+    plt.ylabel('Mel filter')
+    plt.title('Mel filter bank')
+    plt.colorbar()
+    plt.tight_layout()
+    '''
     # applicamio il filtro e facciamo il logaritmo
     return np.log(np.dot(mel_basis, spec)), FFT
 
