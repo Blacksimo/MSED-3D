@@ -110,7 +110,7 @@ def load_desc_file(_desc_file):
 ###########################################################
 def extract_gcc(_FFT):
     #time = _FFT.shape[0]
-    time = 1
+    time = 100
     gcc = np.zeros((time,60))
     delta_count = 0
     #total Bin
@@ -362,19 +362,24 @@ for fold in folds_list:
                 if tmp_feat_file_GCC_120.endswith('.npz') and fold == max(folds_list) :
                     print('Delete: ', tmp_feat_file_GCC_120)
                     os.unlink(tmp_feat_file_GCC_120)
-                    
             #240
             if '240' in RESOLUTIONS:
                 tmp_feat_file_GCC_240= os.path.join(
                     feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_240'))
                 dmp = np.load(tmp_feat_file_GCC_240)
                 tmp_GCC_240, tmp_label = dmp['arr_0'], dmp['arr_1']
+                if tmp_feat_file_GCC_240.endswith('.npz') and fold == max(folds_list) :
+                    print('Delete: ', tmp_feat_file_GCC_240)
+                    os.unlink(tmp_feat_file_GCC_240)
             #480
             if '480' in RESOLUTIONS:
                 tmp_feat_file_GCC_480= os.path.join(
                     feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_480'))
                 dmp = np.load(tmp_feat_file_GCC_480)
                 tmp_GCC_480, tmp_label = dmp['arr_0'], dmp['arr_1']
+                if tmp_feat_file_GCC_480.endswith('.npz') and fold == max(folds_list) :
+                    print('Delete: ', tmp_feat_file_GCC_480)
+                    os.unlink(tmp_feat_file_GCC_480)
 
 
         if X_train is None:
