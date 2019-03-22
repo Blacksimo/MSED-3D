@@ -6,6 +6,10 @@ from IPython import embed
 import os
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
+import librosa.display
+import math
+import shutil
+
 
 def load_audio(filename, mono=True, fs=44100):
     """Load audio file into numpy array
@@ -45,8 +49,6 @@ def load_audio(filename, mono=True, fs=44100):
         sample_width = _audio_file.getsampwidth()
         number_of_channels = _audio_file.getnchannels()
         number_of_frames = _audio_file.getnframes()
-
-
 
         # Read raw bytes
         data = _audio_file.readframes(number_of_frames)
@@ -103,42 +105,99 @@ def load_desc_file(_desc_file):
     return _desc_dict
 
 
-def extract_mbe(_y, _sr, _nfft, _nb_mel):
-    # Extract FFT for gcc
+###########################################################
+#EXTRACT GCC
+###########################################################
+def extract_gcc(_FFT):
+    #time = _FFT.shape[0]
+    time = 1
+    gcc = np.zeros((time,60))
+    delta_count = 0
+    #total Bin
+    N = _FFT.shape[1]/2
+    for delta in range(-29, 31):
+        # Time varia per ogni train - test -fold
+        for t in range(time):
+            gcc_sum = 0
+            for freq in range(N):  # FFT shape = (time,[freqX1,freqX2)
+                fraction_term = (_FFT[t][freq] * np.conjugate(_FFT[t][freq+N-1]))/(
+                    abs(_FFT[t][freq]) * abs(_FFT[t][freq+N-1]))
+                exp_term = np.exp((2j*math.pi*freq*delta)/N) 
+                #exp_term = np.real(np.exp(np.complex((2*math.pi*freq*delta))/40))
+                gcc_sum += fraction_term*exp_term
+            gcc[t][delta_count] = gcc_sum
+        delta_count += 1
+        print (delta_count)
+    print 'gcc shape: ', gcc.shape
 
-    FFT = librosa.core.stft(y=_y, n_fft=_nfft, hop_length=_nfft/2)
-    #FFT_np = np.fft.rfft(_y, n=_nfft)
-    #print "FFT: ", FFT.shape
+
+    # dovrà essere T x 60 x 3*binom(C,2) --> se due canali --> T x 60 x 3
+    # scipy.special.binom(2, 2) = 1 --> 1*3 = 3 ambi
+    # scipy.special.binom(4, 2) = 6 --> 6*3 = 18 ambi
+    return gcc
+
+###########################################################
+#EXTRACT MBE
+###########################################################
+def extract_mbe(_y, _sr, _nfft, _nb_mel):
+    FFT_120 = None
+    FFT_240 = None
+    FFT_480 = None
+    #--------------------
+    # Extract FFT for gcc
+    #--------------------
+    if not is_mono:
+        FFT_120 = librosa.core.stft(
+            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=8)  # 1/0.12
+        FFT_240 = librosa.core.stft(
+            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=4)
+        FFT_480 = librosa.core.stft(
+            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=2)
+        #TRANSPOSE new_shape= (time,freq)
+        FFT_120=FFT_120.T
+        FFT_240=FFT_240.T
+        FFT_480=FFT_480.T
+        #FFT =[FFT_120, FFT_240, FFT_480]
+        """
+        #Plot operations
+        D_120 = librosa.amplitude_to_db(np.abs(FFT_120), ref=np.max)
+        D_240 = librosa.amplitude_to_db(np.abs(FFT_240), ref=np.max)
+        D_480 = librosa.amplitude_to_db(np.abs(FFT_480), ref=np.max)
+        plt.figure(figsize=(20, 20))
+        plt.subplot(1, 3, 1)
+        librosa.display.specshow(D_120, sr=44100)
+        plt.colorbar()
+        plt.xlabel('time')
+        plt.title('120')
+        plt.subplot(1, 3, 2)
+        librosa.display.specshow(D_240, sr=44100)
+        plt.colorbar()
+        plt.xlabel('time')
+        plt.title('240')
+        plt.subplot(1, 3, 3)
+        librosa.display.specshow(D_480, sr=44100)
+        plt.colorbar()
+        plt.xlabel('time')
+        plt.title('480')
+        plt.show()
+        """
+    #-------------------------------
+    # extract mel band
+    #-------------------------------
     # spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(
         y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
-    
-    #La precedente riga (deprecated) è completamente rimpiazzabile da:
-    D = np.abs(FFT)
-    librosa.display.specshow(librosa.amplitude_to_db(D, ref=np.max), 
-        y_axis='log', x_axis='time')
-    plt.title('Power spectrogram')
-    plt.colorbar(format='%+2.0f dB')
-    plt.tight_layout()
-    
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
-    
-    '''
-    plt.figure()
-    librosa.display.specshow(mel_basis, x_axis='linear')
-    plt.ylabel('Mel filter')
-    plt.title('Mel filter bank')
-    plt.colorbar()
-    plt.tight_layout()
-    '''
     # applicamio il filtro e facciamo il logaritmo
-    return np.log(np.dot(mel_basis, spec)), FFT
+    return np.log(np.dot(mel_basis, spec)), FFT_120, FFT_240, FFT_480
 
 # ###################################################################
 #              Main script starts here
 # ###################################################################
 
+RESOLUTIONS = ['120']
+#RESOLUTIONS = ['120','240','480']
 
 is_mono = False
 __class_labels = {
@@ -156,12 +215,12 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'tmp2_feat/'
+feat_folder = 'tmp_feat/'
 utils.create_folder(feat_folder)
 
 # User set parameters
 nfft = 2048
-win_len = nfft  # !
+win_len = nfft 
 hop_len = win_len / 2
 nb_mel_bands = 40
 sr = 44100
@@ -185,28 +244,50 @@ for audio_filename in os.listdir(audio_folder):
     y, sr = load_audio(audio_file, mono=is_mono, fs=sr)
     print y.shape
     mbe = None
-    FFT = None
+    FFT = [None,None,None]
 
     if is_mono:
         # shape = (freq, time)
-        mbe, FFT = extract_mbe(y, sr, nfft, nb_mel_bands)
+        mbe,  FFT_120, FFT_240, FFT_480 = extract_mbe(y, sr, nfft, nb_mel_bands)
         mbe = mbe.T  # shape = (time, freq)
-        FFT = FFT.T  # shape = (time, freq)
+        #FFT NON MI SERVE PERCHE NON CALCOLO GCC
     else:
         # SONO 2 CANALI
         for ch in range(y.shape[0]):
             print 'CH: ', ch
-            mbe_ch, FFT_ch = extract_mbe(y[ch, :], sr, nfft, nb_mel_bands)
+            mbe_ch, FFT_120_ch, FFT_240_ch, FFT_480_ch = extract_mbe(y[ch, :], sr, nfft, nb_mel_bands)
             mbe_ch = mbe_ch.T
-            FFT_ch = FFT_ch.T
+            #FFT è gia trasposto
             if mbe is None:
                 mbe = mbe_ch
-                FFT = FFT_ch
+                FFT_120=FFT_120_ch
+                FFT_240=FFT_240_ch
+                FFT_480=FFT_480_ch
             else:
                 mbe = np.concatenate((mbe, mbe_ch), 1)
-                FFT = np.concatenate((FFT, FFT_ch), 1)
-    print "FFT: ", FFT.shape
+                FFT_120 = np.concatenate((FFT_120, FFT_120_ch), 1)
+                FFT_240 = np.concatenate((FFT_240, FFT_240_ch), 1)
+                FFT_480 = np.concatenate((FFT_480, FFT_480_ch), 1)
+        print('> FFT extracted for both channels')
+    if not is_mono:
+        if '120' in RESOLUTIONS:
+            print '> START GCC 120'
+            GCC_120 = extract_gcc(FFT_120)
+            print "GCC_120: ", GCC_120.shape
+        if '240' in RESOLUTIONS:
+            print '> START GCC 240'
+            GCC_240 = extract_gcc(FFT_240)
+            print "GCC_240: ", GCC_240.shape
+        if '480' in RESOLUTIONS:
+            print '> START GCC 480'
+            GCC_480 = extract_gcc(FFT_480)
+            print "GCC_480: ", GCC_480.shape
+        
     print "mbe: ", mbe.shape
+
+    
+   
+
     label = np.zeros((mbe.shape[0], len(__class_labels)))
     tmp_data = np.array(desc_dict[audio_filename])
 
@@ -218,12 +299,27 @@ for audio_filename in os.listdir(audio_folder):
     se_class = tmp_data[:, 2].astype(int)
     for ind, val in enumerate(se_class):
         label[frame_start[ind]:frame_end[ind], val] = 1
+    #MBE
     tmp_feat_file = os.path.join(feat_folder, '{}_{}.npz'.format(
         audio_filename, 'mon' if is_mono else 'bin'))
-    tmp_feat_file_FFT = os.path.join(feat_folder, '{}_{}_{}.npz'.format(
-        audio_filename, 'mon' if is_mono else 'bin', 'FFT'))
     np.savez(tmp_feat_file, mbe, label)
-    np.savez(tmp_feat_file_FFT, FFT, label)
+    if not is_mono:
+        #Save GCC in different folders
+        #120
+        if '120' in RESOLUTIONS:
+            tmp_feat_file_GCC_120= os.path.join(feat_folder, '{}_{}_{}.npz'.format(
+                audio_filename, 'mon' if is_mono else 'bin', 'GCC_120'))
+            np.savez(tmp_feat_file_GCC_120, GCC_120, label)
+        #240
+        if '240' in RESOLUTIONS:
+            tmp_feat_file_GCC_240= os.path.join(feat_folder, '{}_{}_{}.npz'.format(
+                audio_filename, 'mon' if is_mono else 'bin', 'GCC_240'))
+            np.savez(tmp_feat_file_GCC_240, GCC_240, label)
+        #480
+        if '480' in RESOLUTIONS:
+            tmp_feat_file_GCC_480= os.path.join(feat_folder, '{}_{}_{}.npz'.format(
+                audio_filename, 'mon' if is_mono else 'bin', 'GCC_480'))
+            np.savez(tmp_feat_file_GCC_480, GCC_480, label)
 
 # -----------------------------------------------------------------------
 # Feature Normalization
@@ -239,31 +335,78 @@ for fold in folds_list:
 
     # mbe
     X_train, Y_train, X_test, Y_test = None, None, None, None
-    # FFT
-    X_train_FFT, Y_train_FFT, X_test_FFT, Y_test_FFT = None, None, None, None
+    if not is_mono:
+        # 120
+        if '120' in RESOLUTIONS:
+            X_train_GCC_120, Y_train_GCC_120, X_test_GCC_120, Y_test_GCC_120 = None, None, None, None
+        # 240
+        if '240' in RESOLUTIONS:
+            X_train_GCC_240, Y_train_GCC_240 ,X_test_GCC_240, Y_test_GCC_240 = None, None, None, None
+        # 480
+        if '480' in RESOLUTIONS:
+            X_train_GCC_480, Y_train_GCC_480 ,X_test_GCC_480, Y_test_GCC_480 = None, None, None, None
+    
     for key in train_dict.keys():
         # mbe
         tmp_feat_file = os.path.join(
             feat_folder, '{}_{}.npz'.format(key, 'mon' if is_mono else 'bin'))
         dmp = np.load(tmp_feat_file)
         tmp_mbe, tmp_label = dmp['arr_0'], dmp['arr_1']
-        # FFT
-        tmp_feat_file_FFT = os.path.join(feat_folder, '{}_{}_{}.npz'.format(
-            audio_filename, 'mon' if is_mono else 'bin', 'FFT'))
-        dmp = np.load(tmp_feat_file_FFT)
-        tmp_FFT, tmp_label = dmp['arr_0'], dmp['arr_1']
+        if not is_mono:
+            # 120
+            if '120' in RESOLUTIONS:
+                tmp_feat_file_GCC_120= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_120'))
+                dmp = np.load(tmp_feat_file_GCC_120)
+                tmp_GCC_120, tmp_label = dmp['arr_0'], dmp['arr_1']
+                if tmp_feat_file_GCC_120.endswith('.npz') and fold == max(folds_list) :
+                    print('Delete: ', tmp_feat_file_GCC_120)
+                    os.unlink(tmp_feat_file_GCC_120)
+                    
+            #240
+            if '240' in RESOLUTIONS:
+                tmp_feat_file_GCC_240= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_240'))
+                dmp = np.load(tmp_feat_file_GCC_240)
+                tmp_GCC_240, tmp_label = dmp['arr_0'], dmp['arr_1']
+            #480
+            if '480' in RESOLUTIONS:
+                tmp_feat_file_GCC_480= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_480'))
+                dmp = np.load(tmp_feat_file_GCC_480)
+                tmp_GCC_480, tmp_label = dmp['arr_0'], dmp['arr_1']
+
+
         if X_train is None:
             # mbe
             X_train, Y_train = tmp_mbe, tmp_label
-            # FFT
-            X_train_FFT, Y_train_FFT = tmp_FFT, tmp_label
+            if not is_mono:
+                # 120
+                if '120' in RESOLUTIONS:
+                    X_train_GCC_120, Y_train_GCC_120 = tmp_GCC_120, tmp_label
+                # 240
+                if '240' in RESOLUTIONS:
+                    X_train_GCC_240, Y_train_GCC_240 = tmp_GCC_240, tmp_label
+                # 480
+                if '480' in RESOLUTIONS:
+                    X_train_GCC_480, Y_train_GCC_480 = tmp_GCC_480, tmp_label
         else:
             # mbe
             X_train, Y_train = np.concatenate(
                 (X_train, tmp_mbe), 0), np.concatenate((Y_train, tmp_label), 0)
-            # FFT
-            X_train_FFT, Y_train_FFT = np.concatenate(
-                (X_train_FFT, tmp_FFT), 0), np.concatenate((Y_train_FFT, tmp_label), 0)
+            if not is_mono:
+                # 120
+                if '120' in RESOLUTIONS:
+                    X_train_GCC_120, Y_train_GCC_120 = np.concatenate(
+                        (X_train_GCC_120, tmp_GCC_120), 0), np.concatenate((Y_train_GCC_120, tmp_label), 0)
+                # 240
+                if '240' in RESOLUTIONS:
+                    X_train_GCC_240, Y_train_GCC_240 = np.concatenate(
+                        (X_train_GCC_240, tmp_GCC_240), 0), np.concatenate((Y_train_GCC_240, tmp_label), 0)
+                # 480
+                if '480' in RESOLUTIONS:
+                    X_train_GCC_480, Y_train_GCC_480 = np.concatenate(
+                        (X_train_GCC_480, tmp_GCC_480), 0), np.concatenate((Y_train_GCC_480, tmp_label), 0)
 
     for key in test_dict.keys():
         # mbe
@@ -271,23 +414,57 @@ for fold in folds_list:
             feat_folder, '{}_{}.npz'.format(key, 'mon' if is_mono else 'bin'))
         dmp = np.load(tmp_feat_file)
         tmp_mbe, tmp_label = dmp['arr_0'], dmp['arr_1']
-        # FFT
-        tmp_feat_file_FFT = os.path.join(feat_folder, '{}_{}_{}.npz'.format(
-            audio_filename, 'mon' if is_mono else 'bin', 'FFT'))
-        dmp = np.load(tmp_feat_file_FFT)
-        tmp_FFT, tmp_label = dmp['arr_0'], dmp['arr_1']
+        if not is_mono:
+            # 120
+            if '120' in RESOLUTIONS:
+                tmp_feat_file_GCC_120= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_120'))
+                dmp = np.load(tmp_feat_file_GCC_120)
+                tmp_GCC_120, tmp_label = dmp['arr_0'], dmp['arr_1']
+            #240
+            if '240' in RESOLUTIONS:
+                tmp_feat_file_GCC_240= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_240'))
+                dmp = np.load(tmp_feat_file_GCC_240)
+                tmp_GCC_240, tmp_label = dmp['arr_0'], dmp['arr_1']
+            #480
+            if '480' in RESOLUTIONS:
+                tmp_feat_file_GCC_480= os.path.join(
+                    feat_folder, '{}_{}_{}.npz'.format(key, 'mon' if is_mono else 'bin', 'GCC_480'))
+                dmp = np.load(tmp_feat_file_GCC_480)
+                tmp_GCC_480, tmp_label = dmp['arr_0'], dmp['arr_1']
+
+
         if X_test is None:
             # mbe
             X_test, Y_test = tmp_mbe, tmp_label
-            # FFT
-            X_test_FFT, Y_test_FFT = tmp_FFT, tmp_label
+            if not is_mono:
+                # 120
+                if '120' in RESOLUTIONS:
+                    X_test_GCC_120, Y_test_GCC_120 = tmp_GCC_120, tmp_label
+                # 240
+                if '240' in RESOLUTIONS:
+                    X_test_GCC_240, Y_test_GCC_240 = tmp_GCC_240, tmp_label
+                # 480
+                if '480' in RESOLUTIONS:
+                    X_test_GCC_480, Y_test_GCC_480 = tmp_GCC_480, tmp_label
         else:
             # mbe
             X_test, Y_test = np.concatenate(
                 (X_test, tmp_mbe), 0), np.concatenate((Y_test, tmp_label), 0)
-            # FFT
-            X_test_FFT, Y_test_FFT = np.concatenate(
-                (X_test_FFT, tmp_FFT), 0), np.concatenate((Y_test_FFT, tmp_label), 0)
+            if not is_mono:
+                # 120
+                if '120' in RESOLUTIONS:
+                    X_test_GCC_120, Y_test_GCC_120 = np.concatenate(
+                        (X_test_GCC_120, tmp_GCC_120), 0), np.concatenate((Y_test_GCC_120, tmp_label), 0)
+                # 240
+                if '240' in RESOLUTIONS:
+                    X_test_GCC_240, Y_test_GCC_240 = np.concatenate(
+                        (X_test_GCC_240, tmp_GCC_240), 0), np.concatenate((Y_test_GCC_240, tmp_label), 0)
+                # 480
+                if '480' in RESOLUTIONS:
+                    X_test_GCC_480, Y_test_GCC_480 = np.concatenate(
+                        (X_test_GCC_480, tmp_GCC_480), 0), np.concatenate((Y_test_GCC_480, tmp_label), 0)
 
     # Normalize the training data, and scale the testing data using the training data weights
 
@@ -300,12 +477,28 @@ for fold in folds_list:
         feat_folder, 'mbe_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
     np.savez(normalized_feat_file, X_train, Y_train, X_test, Y_test)
     print('normalized_feat_file : {}'.format(normalized_feat_file))
-    # FFT
+    if not is_mono:
+        # GCC
+        #120
+        if '120' in RESOLUTIONS:
+            normalized_feat_file_GCC_120 = os.path.join(
+                feat_folder, 'GCC_120_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
+            np.savez(normalized_feat_file_GCC_120, X_train_GCC_120,
+                    Y_train_GCC_120, X_test_GCC_120, Y_test_GCC_120)
+            print('normalized_feat_file_GCC_120 : {}'.format(normalized_feat_file_GCC_120))
 
-    #X_train_FFT = scaler.fit_transform(X_train_FFT)
-    #X_test_FFT = scaler.transform(X_test_FFT)
-    normalized_feat_file_FFT = os.path.join(
-        feat_folder, 'FFT_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
-    np.savez(normalized_feat_file_FFT, X_train_FFT,
-             Y_train_FFT, X_test_FFT, Y_test_FFT)
-    print('normalized_feat_file_FFT : {}'.format(normalized_feat_file_FFT))
+        #240
+        if '240' in RESOLUTIONS:
+            normalized_feat_file_GCC_240 = os.path.join(
+                feat_folder, 'GCC_240_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
+            np.savez(normalized_feat_file_GCC_240, X_train_GCC_240,
+                    Y_train_GCC_240, X_test_GCC_240, Y_test_GCC_240)
+            print('normalized_feat_file_GCC_240 : {}'.format(normalized_feat_file_GCC_240))
+
+        #480
+        if '480' in RESOLUTIONS:
+            normalized_feat_file_GCC_480 = os.path.join(
+                feat_folder, 'GCC_480_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
+            np.savez(normalized_feat_file_GCC_480, X_train_GCC_480,
+                    Y_train_GCC_480, X_test_GCC_480, Y_test_GCC_480)
+            print('normalized_feat_file_GCC_480 : {}'.format(normalized_feat_file_GCC_480))

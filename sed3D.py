@@ -36,8 +36,8 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, 
             spec_x = Activation('relu')(spec_x)
             spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size[_i]))(spec_x)
             spec_x = Dropout(dropout_rate)(spec_x)
-            print(spec_x)
-            spec_x = Reshape((-1,256,8))(spec_x)
+            print('shape:', spec_x.shape)
+            #spec_x = Reshape((-1,256,8))(spec_x)
         else:
             spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
             spec_x = BatchNormalization(axis=1)(spec_x)
