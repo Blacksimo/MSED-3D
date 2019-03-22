@@ -110,24 +110,23 @@ def load_desc_file(_desc_file):
 ###########################################################
 def extract_gcc(_FFT):
     #time = _FFT.shape[0]
-    time = 100
-    gcc = np.zeros((time,60))
-    delta_count = 0
-    #total Bin
+    time = 100 # per le prove
+    TAU = np.arange(-29,31,1)
+    gcc = np.zeros((time,len(TAU)))
+    #Total bins
     N = _FFT.shape[1]/2
-    for delta in range(-29, 31):
+    for delta in TAU: #-29, -28, ..., 28, 29, 30
         # Time varia per ogni train - test -fold
         for t in range(time):
             gcc_sum = 0
-            for freq in range(N):  # FFT shape = (time,[freqX1,freqX2)
+            for freq in range(N): 
                 fraction_term = (_FFT[t][freq] * np.conjugate(_FFT[t][freq+N-1]))/(
                     abs(_FFT[t][freq]) * abs(_FFT[t][freq+N-1]))
                 exp_term = np.exp((2j*math.pi*freq*delta)/N) 
                 #exp_term = np.real(np.exp(np.complex((2*math.pi*freq*delta))/40))
                 gcc_sum += fraction_term*exp_term
-            gcc[t][delta_count] = gcc_sum
-        delta_count += 1
-        print (delta_count)
+            gcc[t][delta] = gcc_sum
+        print (delta)
     print 'gcc shape: ', gcc.shape
 
 
@@ -198,7 +197,7 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
 
 RESOLUTIONS = ['120']
 #RESOLUTIONS = ['120','240','480']
-
+processed_audio_count = 0
 is_mono = False
 __class_labels = {
     'brakes squeaking': 0,
@@ -215,7 +214,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'tmp_feat/'
+feat_folder = 'tmp2_feat/'
 utils.create_folder(feat_folder)
 
 # User set parameters
@@ -241,8 +240,9 @@ desc_dict.update(load_desc_file(evaluate_file))
 for audio_filename in os.listdir(audio_folder):
     audio_file = os.path.join(audio_folder, audio_filename)
     print('Extracting features and label for : {}'.format(audio_file))
+    processed_audio_count+=1
+    print ('> Processed_audio_count: {}'.format(processed_audio_count) )
     y, sr = load_audio(audio_file, mono=is_mono, fs=sr)
-    print y.shape
     mbe = None
     FFT = [None,None,None]
 
@@ -254,7 +254,7 @@ for audio_filename in os.listdir(audio_folder):
     else:
         # SONO 2 CANALI
         for ch in range(y.shape[0]):
-            print 'CH: ', ch
+            #print 'CH: ', ch
             mbe_ch, FFT_120_ch, FFT_240_ch, FFT_480_ch = extract_mbe(y[ch, :], sr, nfft, nb_mel_bands)
             mbe_ch = mbe_ch.T
             #FFT è gia trasposto
@@ -271,15 +271,15 @@ for audio_filename in os.listdir(audio_folder):
         print('> FFT extracted for both channels')
     if not is_mono:
         if '120' in RESOLUTIONS:
-            print '> START GCC 120'
+            print '> START extraction GCC 120 ms'
             GCC_120 = extract_gcc(FFT_120)
             print "GCC_120: ", GCC_120.shape
         if '240' in RESOLUTIONS:
-            print '> START GCC 240'
+            print '> START GCC extraction 240 ms'
             GCC_240 = extract_gcc(FFT_240)
             print "GCC_240: ", GCC_240.shape
         if '480' in RESOLUTIONS:
-            print '> START GCC 480'
+            print '> START GCC extraction 480 ms'
             GCC_480 = extract_gcc(FFT_480)
             print "GCC_480: ", GCC_480.shape
         

@@ -5,7 +5,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import numpy as np
 
 data = np.load('tmp_feat/GCC_120_bin_fold1.npz')
-GCC = data['arr_0']  # shape (time,freq)
+GCC = data['arr_2']  # shape (time,freq)
 print 'GCC shape : ', GCC.shape
 print 'GCC max : ', GCC.max()
 print 'GCC min : ', GCC.min
