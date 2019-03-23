@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import librosa.display
 import math
 import shutil
-
+import sys
 
 def load_audio(filename, mono=True, fs=44100):
     """Load audio file into numpy array
@@ -109,13 +109,15 @@ def load_desc_file(_desc_file):
 #EXTRACT GCC
 ###########################################################
 def extract_gcc(_FFT):
-    #time = _FFT.shape[0]
-    time = 100 # per le prove
+    time = _FFT.shape[0]
+    #time = 100 # per le prove
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time,len(TAU)))
+    progress_bar_delta = 0
     #Total bins
     N = _FFT.shape[1]/2
     for delta in TAU: #-29, -28, ..., 28, 29, 30
+        progress_bar_delta +=1
         # Time varia per ogni train - test -fold
         for t in range(time):
             gcc_sum = 0
@@ -126,9 +128,13 @@ def extract_gcc(_FFT):
                 #exp_term = np.real(np.exp(np.complex((2*math.pi*freq*delta))/40))
                 gcc_sum += fraction_term*exp_term
             gcc[t][delta] = gcc_sum
-        print (delta)
+        #print (delta)
+        progress(progress_bar_delta, 60, status='gcc extraction')
     print 'gcc shape: ', gcc.shape
 
+
+
+    
 
     # dovrà essere T x 60 x 3*binom(C,2) --> se due canali --> T x 60 x 3
     # scipy.special.binom(2, 2) = 1 --> 1*3 = 3 ambi
@@ -191,6 +197,20 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     # applicamio il filtro e facciamo il logaritmo
     return np.log(np.dot(mel_basis, spec)), FFT_120, FFT_240, FFT_480
 
+
+def progress(count, total, status=''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()  # As suggested by Rom Ruben (see: http://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console/27871113#comment50529068_27871113)
+
+
+
+
 # ###################################################################
 #              Main script starts here
 # ###################################################################
@@ -214,7 +234,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'tmp2_feat/'
+feat_folder = 'tmp_feat/'
 utils.create_folder(feat_folder)
 
 # User set parameters
