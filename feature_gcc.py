@@ -109,8 +109,8 @@ def load_desc_file(_desc_file):
 #EXTRACT GCC
 ###########################################################
 def extract_gcc(_FFT):
-    time = _FFT.shape[0]
-    #time = 100 # per le prove
+    #time = _FFT.shape[0]
+    time = 2 # per le prove
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time,len(TAU)))
     progress_bar_delta = 0
@@ -215,8 +215,8 @@ def progress(count, total, status=''):
 #              Main script starts here
 # ###################################################################
 
-RESOLUTIONS = ['120']
-#RESOLUTIONS = ['120','240','480']
+#RESOLUTIONS = ['120']
+RESOLUTIONS = ['120','240','480']
 processed_audio_count = 0
 is_mono = False
 __class_labels = {
@@ -234,7 +234,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'tmp_feat/'
+feat_folder = 'feat_gcc/'
 utils.create_folder(feat_folder)
 
 # User set parameters

@@ -16,11 +16,26 @@ K.set_image_data_format('channels_first')
 plot.switch_backend('agg')
 sys.setrecursionlimit(10000)
 
-
+RESOLUTIONS = ['120', '240','480']
 def load_data(_feat_folder, _mono, _fold=None):
-    feat_file_fold = os.path.join(_feat_folder, 'mbe_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
-    dmp = np.load(feat_file_fold)
-    _X_train, _Y_train, _X_test, _Y_test = dmp['arr_0'],  dmp['arr_1'],  dmp['arr_2'],  dmp['arr_3']
+    #MODIFICATO PER IL GCC ESTRATTO DA feature_gcc.py nella cartella feat_gcc
+    feat_file_fold_120 = os.path.join(_feat_folder, 'GCC_120_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
+    dmp_120 = np.load(feat_file_fold_120)
+    _X_train_120, _Y_train_120, _X_test_120, _Y_test_120 = dmp_120['arr_0'],  dmp_120['arr_1'],  dmp_120['arr_2'],  dmp_120['arr_3']
+
+    feat_file_fold_240 = os.path.join(_feat_folder, 'GCC_240_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
+    dmp_240 = np.load(feat_file_fold_240)
+    _X_train_240, _Y_train_240, _X_test_240, _Y_test_240 = dmp_240['arr_0'],  dmp_240['arr_1'],  dmp_240['arr_2'],  dmp_240['arr_3']
+
+    feat_file_fold_480 = os.path.join(_feat_folder, 'GCC_480_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
+    dmp_480 = np.load(feat_file_fold_480)
+    _X_train_480, _Y_train_480, _X_test_480, _Y_test_480 = dmp_480['arr_0'],  dmp_480['arr_1'],  dmp_480['arr_2'],  dmp_480['arr_3']
+
+    _X_train, _Y_train = np.concatenate(
+        (_X_train_120, _X_train_240,_X_train_480), 0), np.concatenate((_Y_train_120, _Y_train_240,_Y_train_480), 0)
+    
+    _X_test, _Y_test = np.concatenate(
+                (_X_test_120, _X_test_240,_X_test_480), 0), np.concatenate((_Y_test_120, _Y_test_240,_Y_test_480), 0)
     return _X_train, _Y_train, _X_test, _Y_test
 
 
@@ -28,6 +43,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
 
     spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
     spec_x = spec_start
+    print ('sahpe spec_x: ', spec_x.shape)
     for _i, _cnt in enumerate(_cnn_pool_size):
         spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
         spec_x = BatchNormalization(axis=1)(spec_x)
@@ -94,7 +110,7 @@ def preprocess_data(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
 
 is_mono = False  # True: mono-channel input, False: binaural input
 
-feat_folder = 'feat/'
+feat_folder = 'feat_gcc/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
@@ -135,8 +151,9 @@ for fold in [1, 2, 3, 4]:
     print('----------------------------------------------\n')
     # Load feature and labels, pre-process it
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
+    #print("X SHAPE: ", X.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-
+    print("X SHAPE preprocessed: ", X.shape)
     # Load model
     model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
 

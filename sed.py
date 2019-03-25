@@ -28,6 +28,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
 
     spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
     spec_x = spec_start
+    print ('sahpe spec_x: ', spec_x.shape)
     for _i, _cnt in enumerate(_cnn_pool_size):
         spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
         spec_x = BatchNormalization(axis=1)(spec_x)
@@ -137,7 +138,7 @@ for fold in [1, 2, 3, 4]:
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
     print("X SHAPE: ", X.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-    print("X SHAPE: ", X.shape)
+    print("X SHAPE preprocessed: ", X.shape)
     # Load model
     model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
 

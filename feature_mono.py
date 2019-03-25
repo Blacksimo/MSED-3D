@@ -106,8 +106,10 @@ def load_desc_file(_desc_file):
 def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
+
     #print 'shape y: ', _y.shape    
     #print 'shape spec: ', spec.shape, spec.max(), spec.min(), spec.mean()
+
     
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
@@ -118,7 +120,7 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
 #              Main script starts here
 # ###################################################################
 
-is_mono = False
+is_mono = True
 __class_labels = {
     'brakes squeaking': 0,
     'car': 1,
@@ -134,7 +136,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'feat/'
+feat_folder = 'feat_mono/'
 utils.create_folder(feat_folder)
 
 # User set parameters
