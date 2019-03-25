@@ -22,6 +22,7 @@ def load_data(_feat_folder, _mono, _fold=None):
     feat_file_fold_120 = os.path.join(_feat_folder, 'GCC_120_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp_120 = np.load(feat_file_fold_120)
     _X_train_120, _Y_train_120, _X_test_120, _Y_test_120 = dmp_120['arr_0'],  dmp_120['arr_1'],  dmp_120['arr_2'],  dmp_120['arr_3']
+    print("_X_train_120: ", _X_train_120.shape)
 
     feat_file_fold_240 = os.path.join(_feat_folder, 'GCC_240_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp_240 = np.load(feat_file_fold_240)
@@ -30,12 +31,17 @@ def load_data(_feat_folder, _mono, _fold=None):
     feat_file_fold_480 = os.path.join(_feat_folder, 'GCC_480_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp_480 = np.load(feat_file_fold_480)
     _X_train_480, _Y_train_480, _X_test_480, _Y_test_480 = dmp_480['arr_0'],  dmp_480['arr_1'],  dmp_480['arr_2'],  dmp_480['arr_3']
-
+    #TODO
+    #conacatenate axis = 1--> 60x3 tau, vedi anche concatenazione canali mbe il concetto è lo stesso
     _X_train, _Y_train = np.concatenate(
-        (_X_train_120, _X_train_240,_X_train_480), 0), np.concatenate((_Y_train_120, _Y_train_240,_Y_train_480), 0)
+        (_X_train_120, _X_train_240,_X_train_480), 1), np.concatenate((_Y_train_120, _Y_train_240,_Y_train_480), 0)
     
     _X_test, _Y_test = np.concatenate(
-                (_X_test_120, _X_test_240,_X_test_480), 0), np.concatenate((_Y_test_120, _Y_test_240,_Y_test_480), 0)
+                (_X_test_120, _X_test_240,_X_test_480), 1), np.concatenate((_Y_test_120, _Y_test_240,_Y_test_480), 0)
+    #shape risultante è shape= (time, 60x3)--> (time,180)
+
+    #print("_X_train: ", _X_train.shape)
+    #print("_X_test: ", _X_test.shape)
     return _X_train, _Y_train, _X_test, _Y_test
 
 
@@ -43,7 +49,6 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
 
     spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
     spec_x = spec_start
-    print ('sahpe spec_x: ', spec_x.shape)
     for _i, _cnt in enumerate(_cnn_pool_size):
         spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
         spec_x = BatchNormalization(axis=1)(spec_x)
