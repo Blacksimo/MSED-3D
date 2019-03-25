@@ -1,3 +1,4 @@
+# coding=utf-8
 import wave
 import numpy as np
 import utils
@@ -10,7 +11,7 @@ import librosa.display
 import math
 import shutil
 import sys
-import threading
+import multiprocessing as mp
 import time
 
 def load_audio(filename, mono=True, fs=44100):
@@ -110,7 +111,7 @@ def load_desc_file(_desc_file):
 ###########################################################
 #EXTRACT GCC
 ###########################################################
-def extract_gcc(_FFT):
+def extract_gcc(_FFT,_RES, _output):
     #time = _FFT.shape[0]
     time = 60 # per le prove
     TAU = np.arange(-29,31,1)
@@ -131,17 +132,19 @@ def extract_gcc(_FFT):
                 gcc_sum += fraction_term*exp_term
             gcc[t][delta] = gcc_sum
         #print (delta)
-        #progress(progress_bar_delta, 60, status='gcc extraction')
+        progress(progress_bar_delta, 60, status=_RES)
     print 'gcc shape: ', gcc.shape
 
 
 
     
 
-    # dovrà essere T x 60 x 3*binom(C,2) --> se due canali --> T x 60 x 3
+    
     # scipy.special.binom(2, 2) = 1 --> 1*3 = 3 ambi
     # scipy.special.binom(4, 2) = 6 --> 6*3 = 18 ambi
+    _output.put(gcc)
     return gcc
+    
 
 ###########################################################
 #EXTRACT MBE
@@ -191,7 +194,6 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #-------------------------------
     # extract mel band
     #-------------------------------
-    # spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(
         y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
@@ -294,36 +296,42 @@ for audio_filename in os.listdir(audio_folder):
     if not is_mono:
        
         start_time = time.clock()
+        output1 = mp.Queue()
+        output2 = mp.Queue()
+        output3 = mp.Queue()
         if '120' in RESOLUTIONS:
             print '> START extraction GCC 120 ms'
-            thread1 = threading.Thread(target=extract_gcc, args=(FFT_120,))
+            process1 = mp.Process(target=extract_gcc, args=(FFT_120,'120',output1))
            
             #GCC_120 = extract_gcc(FFT_120)
             
             #print "GCC_120: ", GCC_120.shape
         if '240' in RESOLUTIONS:
             print '> START GCC extraction 240 ms'
-            thread2 = threading.Thread(target=extract_gcc, args=(FFT_240,))
+            process2 = mp.Process(target=extract_gcc, args=(FFT_240,'240',output2))
             
             #GCC_240 = extract_gcc(FFT_240)
            
             #print "GCC_240: ", GCC_240.shape
         if '480' in RESOLUTIONS:
             print '> START GCC extraction 480 ms'
-            thread3 = threading.Thread(target=extract_gcc, args=(FFT_480,))
+            process3 = mp.Process(target=extract_gcc, args=(FFT_480,'480',output3))
             
             #GCC_480 = extract_gcc(FFT_480)
             
             #print "GCC_480: ", GCC_480.shape
-        print('thread start')
-        thread1.start()
-        thread2.start()
-        thread3.start()
-        print('thread join')
-        GCC_120=thread1.join()
-        GCC_240 =thread2.join()
-        GCC_480=  thread3.join()
-   
+        print('Processes start')
+        process1.start()
+        process2.start()
+        process3.start()
+        print('Processes join')
+        process1.join()
+        process2.join()
+        process3.join()
+        print('wait output')
+        GCC_120 = output1.get()
+        GCC_240 = output2.get()
+        GCC_480 = output3.get()    
  
   
     print "mbe: ", mbe.shape

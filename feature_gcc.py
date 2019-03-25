@@ -10,7 +10,7 @@ import librosa.display
 import math
 import shutil
 import sys
-import threading
+import time
 
 def load_audio(filename, mono=True, fs=44100):
     """Load audio file into numpy array
@@ -291,6 +291,7 @@ for audio_filename in os.listdir(audio_folder):
                 FFT_480 = np.concatenate((FFT_480, FFT_480_ch), 1)
         print('> FFT extracted for both channels')
     if not is_mono:
+        start_time = time.clock()
         if '120' in RESOLUTIONS:
             print '> START extraction GCC 120 ms'
             GCC_120 = extract_gcc(FFT_120)
@@ -305,7 +306,8 @@ for audio_filename in os.listdir(audio_folder):
             print "GCC_480: ", GCC_480.shape
         
     print "mbe: ", mbe.shape
-
+    print time.clock() - start_time, "seconds"
+    
     
    
 

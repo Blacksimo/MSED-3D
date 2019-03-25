@@ -1,3 +1,4 @@
+# coding=utf-8
 import wave
 import numpy as np
 import utils
@@ -10,7 +11,7 @@ import librosa.display
 import math
 import shutil
 import sys
-import threading
+import multiprocessing as mp
 import time
 
 def load_audio(filename, mono=True, fs=44100):
@@ -110,9 +111,9 @@ def load_desc_file(_desc_file):
 ###########################################################
 #EXTRACT GCC
 ###########################################################
-def extract_gcc(_FFT):
+def extract_gcc(_FFT,_res, _output):
     #time = _FFT.shape[0]
-    time = 60 # per le prove
+    time = 10 # per le prove
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time,len(TAU)))
     progress_bar_delta = 0
@@ -131,17 +132,12 @@ def extract_gcc(_FFT):
                 gcc_sum += fraction_term*exp_term
             gcc[t][delta] = gcc_sum
         #print (delta)
-        #progress(progress_bar_delta, 60, status='gcc extraction')
+        progress(progress_bar_delta, 60, status=_res)
     print 'gcc shape: ', gcc.shape
 
-
-
-    
-
-    # dovrà essere T x 60 x 3*binom(C,2) --> se due canali --> T x 60 x 3
-    # scipy.special.binom(2, 2) = 1 --> 1*3 = 3 ambi
-    # scipy.special.binom(4, 2) = 6 --> 6*3 = 18 ambi
+    _output.put((_res,gcc))
     return gcc
+    
 
 ###########################################################
 #EXTRACT MBE
@@ -191,7 +187,6 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #-------------------------------
     # extract mel band
     #-------------------------------
-    # spec è |stft(y, n_fft=n_fft, hop_length=hop_length)|**power` e FFT è la parte dentro il modulo
     spec, n_fft = librosa.core.spectrum._spectrogram(
         y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
@@ -264,6 +259,8 @@ for audio_filename in os.listdir(audio_folder):
     print('Extracting features and label for : {}'.format(audio_file))
     processed_audio_count+=1
     print ('> Processed_audio_count: {}'.format(processed_audio_count) )
+    start_time = time.clock()
+    print start_time, "time START seconds"
     y, sr = load_audio(audio_file, mono=is_mono, fs=sr)
     mbe = None
     FFT = [None,None,None]
@@ -292,44 +289,36 @@ for audio_filename in os.listdir(audio_folder):
                 FFT_480 = np.concatenate((FFT_480, FFT_480_ch), 1)
         print('> FFT extracted for both channels')
     if not is_mono:
-       
-        start_time = time.clock()
-        if '120' in RESOLUTIONS:
-            print '> START extraction GCC 120 ms'
-            thread1 = threading.Thread(target=extract_gcc, args=(FFT_120,))
-           
-            #GCC_120 = extract_gcc(FFT_120)
-            
-            #print "GCC_120: ", GCC_120.shape
-        if '240' in RESOLUTIONS:
-            print '> START GCC extraction 240 ms'
-            thread2 = threading.Thread(target=extract_gcc, args=(FFT_240,))
-            
-            #GCC_240 = extract_gcc(FFT_240)
-           
-            #print "GCC_240: ", GCC_240.shape
-        if '480' in RESOLUTIONS:
-            print '> START GCC extraction 480 ms'
-            thread3 = threading.Thread(target=extract_gcc, args=(FFT_480,))
-            
-            #GCC_480 = extract_gcc(FFT_480)
-            
-            #print "GCC_480: ", GCC_480.shape
-        print('thread start')
-        thread1.start()
-        thread2.start()
-        thread3.start()
-        print('thread join')
-        GCC_120=thread1.join()
-        GCC_240 =thread2.join()
-        GCC_480=  thread3.join()
-   
- 
-  
-    print "mbe: ", mbe.shape
+        multiprocess_diz = {'120' :FFT_120,'240' :FFT_240,'480' :FFT_480}
+        
+        output = mp.Queue()
+        processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output))for res in RESOLUTIONS]
+
+        # Run processes
+        for p in processes:
+            p.start()
+        print('Processes started')
+        # Exit the completed processes
+        for p in processes:
+            p.join()
+        print('Processes joined')
+        # Get process results from the output queue
+        results =  [output.get() for p in processes]
+        results.sort()
+        #to check the order 
+        for results_res_order in results:
+            print(results_res_order[0])
+        results = [r[1] for r in results]
+        GCC_120 = results[0]
+        GCC_240 = results[1]
+        GCC_480 = results[2]
+    #print time.clock(), "time END"
     print time.clock() - start_time, "seconds"
-    
-   
+ 
+    print "GCC_120: ", GCC_120.shape
+    print "GCC_240: ", GCC_240.shape
+    print "GCC_480: ", GCC_480.shape
+    print "mbe: ", mbe.shape
 
     label = np.zeros((mbe.shape[0], len(__class_labels)))
     tmp_data = np.array(desc_dict[audio_filename])
