@@ -1,8 +1,9 @@
 from __future__ import print_function
 import os
-import numpy as np
 import time
 import sys
+import numpy as np
+
 import matplotlib.pyplot as plot
 from keras.layers import Bidirectional, TimeDistributed, Conv2D, MaxPooling2D, Input, GRU, Dense, Activation, Dropout, Reshape, Permute
 from keras.layers.normalization import BatchNormalization
@@ -40,8 +41,8 @@ def load_data(_feat_folder, _mono, _fold=None):
                 (_X_test_120, _X_test_240,_X_test_480), 1), np.concatenate((_Y_test_120, _Y_test_240,_Y_test_480), 0)
     #shape risultante è shape= (time, 60x3)--> (time,180)
 
-    #print("_X_train: ", _X_train.shape)
-    #print("_X_test: ", _X_test.shape)
+    print("_X_train: ", _X_train.shape)
+    print("_X_test: ", _X_test.shape)
     return _X_train, _Y_train, _X_test, _Y_test
 
 

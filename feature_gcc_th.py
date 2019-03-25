@@ -12,6 +12,7 @@ import shutil
 import sys
 import threading
 
+
 def load_audio(filename, mono=True, fs=44100):
     """Load audio file into numpy array
     Supports 24-bit wav-format
@@ -291,19 +292,40 @@ for audio_filename in os.listdir(audio_folder):
                 FFT_480 = np.concatenate((FFT_480, FFT_480_ch), 1)
         print('> FFT extracted for both channels')
     if not is_mono:
+       
+       
         if '120' in RESOLUTIONS:
             print '> START extraction GCC 120 ms'
-            GCC_120 = extract_gcc(FFT_120)
-            print "GCC_120: ", GCC_120.shape
+            thread1 = threading.Thread(target=extract_gcc, args=(FFT_120,))
+           
+            #GCC_120 = extract_gcc(FFT_120)
+            
+            #print "GCC_120: ", GCC_120.shape
         if '240' in RESOLUTIONS:
             print '> START GCC extraction 240 ms'
-            GCC_240 = extract_gcc(FFT_240)
-            print "GCC_240: ", GCC_240.shape
+            thread2 = threading.Thread(target=extract_gcc, args=(FFT_240,))
+            
+            #GCC_240 = extract_gcc(FFT_240)
+           
+            #print "GCC_240: ", GCC_240.shape
         if '480' in RESOLUTIONS:
             print '> START GCC extraction 480 ms'
-            GCC_480 = extract_gcc(FFT_480)
-            print "GCC_480: ", GCC_480.shape
-        
+            thread3 = threading.Thread(target=extract_gcc, args=(FFT_480,))
+            
+            #GCC_480 = extract_gcc(FFT_480)
+            
+            #print "GCC_480: ", GCC_480.shape
+        print('thread start')
+        thread1.start()
+        thread2.start()
+        thread3.start()
+        print('thread join')
+        GCC_120=thread1.join()
+        GCC_240 =thread2.join()
+        GCC_480=  thread3.join()
+   
+ 
+  
     print "mbe: ", mbe.shape
 
     
