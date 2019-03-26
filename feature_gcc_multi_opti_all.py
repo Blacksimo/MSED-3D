@@ -15,33 +15,7 @@ import multiprocessing as mp
 import time
 
 def load_audio(filename, mono=True, fs=44100):
-    """Load audio file into numpy array
-    Supports 24-bit wav-format
-
-    Taken from TUT-SED system: https://github.com/TUT-ARG/DCASE2016-baseline-system-python
-
-    Parameters
-    ----------
-    filename:  str
-        Path to audio file
-
-    mono : bool
-        In case of multi-channel audio, channels are averaged into single channel.
-        (Default value=True)
-
-    fs : int > 0 [scalar]
-        Target sample rate, if input audio does not fulfil this, audio is resampled.
-        (Default value=44100)
-
-    Returns
-    -------
-    audio_data : numpy.ndarray [shape=(signal_length, channel)]
-        Audio
-
-    sample_rate : integer
-        Sample rate
-
-    """
+   
 
     file_base, file_extension = os.path.splitext(filename)
     if file_extension == '.wav':
@@ -92,7 +66,7 @@ def load_audio(filename, mono=True, fs=44100):
         if fs != sample_rate:
             audio_data = librosa.core.resample(audio_data, sample_rate, fs)
             sample_rate = fs
-        return audio_data, sample_rate
+        return audio_data ###sample_rate
     return None, None
 
 
@@ -113,7 +87,7 @@ def load_desc_file(_desc_file):
 ###########################################################
 def extract_gcc(_FFT,_res, _output):
     #time = _FFT.shape[0]
-    time = 60 # per le prove
+    time = 10 # per le prove
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time,len(TAU)))
     progress_bar_delta = 0
@@ -136,7 +110,6 @@ def extract_gcc(_FFT,_res, _output):
     print 'gcc shape: ', gcc.shape
 
     _output.put((_res,gcc))
-    print '###',_res
     return gcc
     
 
@@ -255,14 +228,18 @@ desc_dict = load_desc_file(train_file)
 desc_dict.update(load_desc_file(evaluate_file))
 
 # Extract features for all audio files, and save it along with labels
-for audio_filename in os.listdir(audio_folder):
+#for audio_filename in os.listdir(audio_folder):
+
+
+
+def extract_features_filename(_audio_filename):
     audio_file = os.path.join(audio_folder, audio_filename)
     print('Extracting features and label for : {}'.format(audio_file))
-    processed_audio_count+=1
-    print ('> Processed_audio_count: {}'.format(processed_audio_count) )
+    #processed_audio_count+=1
+    #print ('> Processed_audio_count: {}'.format(processed_audio_count) )
     start_time = time.clock()
     print start_time, "time START seconds"
-    y, sr = load_audio(audio_file, mono=is_mono, fs=sr)
+    y= load_audio(audio_file, mono=is_mono, fs=sr) ### eliminato sr=
     mbe = None
     FFT = [None,None,None]
 
@@ -291,22 +268,17 @@ for audio_filename in os.listdir(audio_folder):
         print('> FFT extracted for both channels')
     if not is_mono:
         multiprocess_diz = {'120' :FFT_120,'240' :FFT_240,'480' :FFT_480}
-    
-        output_diz = {'120' :mp.Queue(),'240' :mp.Queue(),'480' :mp.Queue()}
+        
         output = mp.Queue()
-        processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output_diz[res]))for res in RESOLUTIONS]
+        processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output))for res in RESOLUTIONS]
 
         # Run processes
         for p in processes:
             p.start()
         print('Processes started')
         # Exit the completed processes
-        #results = []
         for p in processes:
             p.join()
-            #results.append(output.get())
-            print("Join on process ", p)
-        
         print('Processes joined')
         # Get process results from the output queue
         results =  [output.get() for p in processes]
@@ -359,10 +331,27 @@ for audio_filename in os.listdir(audio_folder):
                 audio_filename, 'mon' if is_mono else 'bin', 'GCC_480'))
             np.savez(tmp_feat_file_GCC_480, GCC_480, label)
 
+
+#------------------------------------------------------------------------------------
+
+#Extract features for all audio files, and save it along with labels
+#for audio_filename in os.listdir(audio_folder):
+
+processes2 = [mp.Process(target=extract_features_filename, args=(audio_filename,))for audio_filename in os.listdir(audio_folder)]
+
+# Run processes
+for p2 in processes2:
+    p2.start()
+print('Processes started')
+# Exit the completed processes
+for p2 in processes2:
+    p2.join()
+print('Processes joined')
+
 # -----------------------------------------------------------------------
 # Feature Normalization
 # -----------------------------------------------------------------------
-
+"""
 for fold in folds_list:
     train_file = os.path.join(evaluation_setup_folder,
                               'street_fold{}_train.txt'.format(1))
@@ -545,3 +534,4 @@ for fold in folds_list:
             np.savez(normalized_feat_file_GCC_480, X_train_GCC_480,
                     Y_train_GCC_480, X_test_GCC_480, Y_test_GCC_480)
             print('normalized_feat_file_GCC_480 : {}'.format(normalized_feat_file_GCC_480))
+"""

@@ -1,4 +1,5 @@
 # coding=utf-8
+from __future__ import division
 import wave
 import numpy as np
 import utils
@@ -12,36 +13,13 @@ import math
 import shutil
 import sys
 import multiprocessing as mp
+from multiprocessing import Process, Queue
 import time
+from tqdm import tqdm
+from p_tqdm import p_map
 
 def load_audio(filename, mono=True, fs=44100):
-    """Load audio file into numpy array
-    Supports 24-bit wav-format
-
-    Taken from TUT-SED system: https://github.com/TUT-ARG/DCASE2016-baseline-system-python
-
-    Parameters
-    ----------
-    filename:  str
-        Path to audio file
-
-    mono : bool
-        In case of multi-channel audio, channels are averaged into single channel.
-        (Default value=True)
-
-    fs : int > 0 [scalar]
-        Target sample rate, if input audio does not fulfil this, audio is resampled.
-        (Default value=44100)
-
-    Returns
-    -------
-    audio_data : numpy.ndarray [shape=(signal_length, channel)]
-        Audio
-
-    sample_rate : integer
-        Sample rate
-
-    """
+    
 
     file_base, file_extension = os.path.splitext(filename)
     if file_extension == '.wav':
@@ -111,33 +89,43 @@ def load_desc_file(_desc_file):
 ###########################################################
 #EXTRACT GCC
 ###########################################################
-def extract_gcc(_FFT,_res, _output):
-    #time = _FFT.shape[0]
-    time = 60 # per le prove
+def extract_gcc(_FFT,_res, _output,_bar):
+
+    resto = _res%2
+    time = np.arange(0,10,1)# per le prove
+    #time = np.arange(0,_FFT.shape[0],1)
+    half_index = time.shape[0]//2
+    if resto != 0:
+       time = time[0:half_index]
+    else:
+        time = time[half_index+1:]
+        
     TAU = np.arange(-29,31,1)
-    gcc = np.zeros((time,len(TAU)))
+    gcc = np.zeros((time.shape[0],len(TAU)))
     progress_bar_delta = 0
     #Total bins
-    N = _FFT.shape[1]/2
+    N = _FFT.shape[1]//2
     for delta in TAU: #-29, -28, ..., 28, 29, 30
-        progress_bar_delta +=1
+        #progress_bar_delta +=1
         # Time varia per ogni train - test -fold
-        for t in range(time):
+        for i,t in enumerate(time):
             gcc_sum = 0
             for freq in range(N): 
-                fraction_term = (_FFT[t][freq] * np.conjugate(_FFT[t][freq+N-1]))/(
-                    abs(_FFT[t][freq]) * abs(_FFT[t][freq+N-1]))
+                fraction_term = (_FFT[t][freq] * np.conjugate(_FFT[t][freq+N-1]))/(abs(_FFT[t][freq]) * abs(_FFT[t][freq+N-1]))
                 exp_term = np.exp((2j*math.pi*freq*delta)/N) 
                 #exp_term = np.real(np.exp(np.complex((2*math.pi*freq*delta))/40))
                 gcc_sum += fraction_term*exp_term
-            gcc[t][delta] = gcc_sum
+                
+            gcc[i][delta] = gcc_sum
         #print (delta)
-        progress(progress_bar_delta, 60, status=_res)
-    print 'gcc shape: ', gcc.shape
+        _bar.update(1)
+        #progress(progress_bar_delta, 60, status=str(_res))
+    _bar.close()
+    #print('gcc shape: ', gcc.shape)
 
     _output.put((_res,gcc))
-    print '###',_res
-    return gcc
+    
+    #return gcc
     
 
 ###########################################################
@@ -152,11 +140,11 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #--------------------
     if not is_mono:
         FFT_120 = librosa.core.stft(
-            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=8)  # 1/0.12
+            y=_y, n_fft=_nfft, hop_length=_nfft//2, win_length=8)  # 1/0.12
         FFT_240 = librosa.core.stft(
-            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=4)
+            y=_y, n_fft=_nfft, hop_length=_nfft//2, win_length=4)
         FFT_480 = librosa.core.stft(
-            y=_y, n_fft=_nfft, hop_length=_nfft/2, win_length=2)
+            y=_y, n_fft=_nfft, hop_length=_nfft//2, win_length=2)
         #TRANSPOSE new_shape= (time,freq)
         FFT_120=FFT_120.T
         FFT_240=FFT_240.T
@@ -189,7 +177,7 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     # extract mel band
     #-------------------------------
     spec, n_fft = librosa.core.spectrum._spectrogram(
-        y=_y, n_fft=_nfft, hop_length=_nfft/2, power=1)
+        y=_y, n_fft=_nfft, hop_length=_nfft//2, power=1)
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
     # applicamio il filtro e facciamo il logaritmo
@@ -232,7 +220,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'feat_gcc_th/'
+feat_folder = 'feat_gcc_th2/'
 utils.create_folder(feat_folder)
 
 # User set parameters
@@ -290,34 +278,44 @@ for audio_filename in os.listdir(audio_folder):
                 FFT_480 = np.concatenate((FFT_480, FFT_480_ch), 1)
         print('> FFT extracted for both channels')
     if not is_mono:
-        multiprocess_diz = {'120' :FFT_120,'240' :FFT_240,'480' :FFT_480}
-    
-        output_diz = {'120' :mp.Queue(),'240' :mp.Queue(),'480' :mp.Queue()}
+        multiprocess_diz = {1 :FFT_120, 2 :FFT_120, 3 :FFT_240,4 :FFT_240, 5 :FFT_480, 6 :FFT_480}
+        
         output = mp.Queue()
-        processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output_diz[res]))for res in RESOLUTIONS]
-
+        """
+        pbar1 = tqdm(total=60)
+        pbar2 = tqdm(total=60)
+        pbar3 = tqdm(total=60)
+        pbar4 = tqdm(total=60)
+        pbar5 = tqdm(total=60)
+        pbar6 = tqdm(total=60)
+        """
+        #bar_diz = {1 :pbar1, 2 : pbar2, 3 :pbar3, 4 :pbar4, 5 :pbar5, 6 :pbar6}
+        processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output,tqdm(total=60,position=res)))for res in range(1,7)]
+        
         # Run processes
         for p in processes:
             p.start()
         print('Processes started')
+
+        results =  [output.get() for p in processes]
+
         # Exit the completed processes
-        #results = []
+        #print('Processes joined')
         for p in processes:
             p.join()
-            #results.append(output.get())
-            print("Join on process ", p)
-        
-        print('Processes joined')
+            #print("Join on process ", p)
+     
         # Get process results from the output queue
-        results =  [output.get() for p in processes]
+        #results =  [output.get() for p in processes]
         results.sort()
         #to check the order 
         for results_res_order in results:
             print(results_res_order[0])
         results = [r[1] for r in results]
-        GCC_120 = results[0]
-        GCC_240 = results[1]
-        GCC_480 = results[2]
+         
+        GCC_120 = np.concatenate((results[0], results[1]), 0)   
+        GCC_240 = np.concatenate((results[2], results[3]), 0)  
+        GCC_480 = np.concatenate((results[4], results[5]), 0)  
     #print time.clock(), "time END"
     print time.clock() - start_time, "seconds"
  

@@ -113,7 +113,7 @@ def load_desc_file(_desc_file):
 ###########################################################
 def extract_gcc(_FFT,_RES, _output):
     #time = _FFT.shape[0]
-    time = 60 # per le prove
+    time = 120 # per le prove
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time,len(TAU)))
     progress_bar_delta = 0
