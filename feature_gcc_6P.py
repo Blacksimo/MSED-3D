@@ -92,13 +92,13 @@ def load_desc_file(_desc_file):
 def extract_gcc(_FFT,_res, _output,_bar):
 
     resto = _res%2
-    #time = np.arange(0,10,1)# per le prove
-    time = np.arange(0,_FFT.shape[0],1)
+    time = np.arange(0,10,1)# per le prove
+    #time = np.arange(0,_FFT.shape[0],1)
     half_index = time.shape[0]//2
     if resto != 0:
        time = time[0:half_index]
     else:
-        time = time[half_index+1:]
+        time = time[half_index:]
         
     TAU = np.arange(-29,31,1)
     gcc = np.zeros((time.shape[0],len(TAU)))
