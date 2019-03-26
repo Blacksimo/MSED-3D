@@ -1,0 +1,5 @@
+{
+    "python.pythonPath": "/home/andrea/.virtualenvs/netpy2/bin/python",
+    "python.venvPath": "~/.virtualenvs",
+    "python.linting.pylintEnabled": false,
+}

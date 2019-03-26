@@ -15,34 +15,6 @@ import multiprocessing as mp
 import time
 
 def load_audio(filename, mono=True, fs=44100):
-    """Load audio file into numpy array
-    Supports 24-bit wav-format
-
-    Taken from TUT-SED system: https://github.com/TUT-ARG/DCASE2016-baseline-system-python
-
-    Parameters
-    ----------
-    filename:  str
-        Path to audio file
-
-    mono : bool
-        In case of multi-channel audio, channels are averaged into single channel.
-        (Default value=True)
-
-    fs : int > 0 [scalar]
-        Target sample rate, if input audio does not fulfil this, audio is resampled.
-        (Default value=44100)
-
-    Returns
-    -------
-    audio_data : numpy.ndarray [shape=(signal_length, channel)]
-        Audio
-
-    sample_rate : integer
-        Sample rate
-
-    """
-
     file_base, file_extension = os.path.splitext(filename)
     if file_extension == '.wav':
         _audio_file = wave.open(filename)
