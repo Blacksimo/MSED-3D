@@ -120,11 +120,11 @@ __models_dir = 'models/'
 utils.create_folder(__models_dir)
 
 # CRNN model definition
-cnn_nb_filt = 128            # CNN filter size
+cnn_nb_filt = 64 #128            # CNN filter size
 cnn_pool_size = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 rnn_nb = [32, 32]           # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
 fc_nb = [32]                # Number of FC nodes.  Length of fc_nb =  number of FC layers
-dropout_rate = 0.5          # Dropout after each layer
+dropout_rate = 0.2 #0.5         # Dropout after each layer
 print('MODEL PARAMETERS:\n cnn_nb_filt: {}, cnn_pool_size: {}, rnn_nb: {}, fc_nb: {}, dropout_rate: {}'.format(
     cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb, dropout_rate))
 
