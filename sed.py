@@ -26,7 +26,7 @@ def load_data(_feat_folder, _mono, _fold=None):
 
 def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
 
-    spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
+    spec_start = Input(shape=(data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))  #SHAPE=(2, 256, 40)
     spec_x = spec_start
     print ('sahpe spec_x: ', spec_x.shape)
     for _i, _cnt in enumerate(_cnn_pool_size):

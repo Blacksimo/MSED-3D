@@ -16,8 +16,8 @@ def reshape_3Dto2D(A):
 def split_multi_channels(data, num_channels):
     in_shape = data.shape
     if len(in_shape) == 3:
-        hop = in_shape[2] / num_channels
-        tmp = np.zeros((in_shape[0], num_channels, in_shape[1], hop))
+        hop = in_shape[2] / num_channels #40
+        tmp = np.zeros((in_shape[0], num_channels, in_shape[1], hop)) #shape=(time/256, channels(2), 256, 40)
         for i in range(num_channels):
             tmp[:, i, :, :] = data[:, :, i * hop:(i + 1) * hop]
     else:
@@ -32,9 +32,10 @@ def split_in_seqs(data, subdivs):
             data = data[:-(data.shape[0] % subdivs), :]
         data = data.reshape((data.shape[0] / subdivs, subdivs, 1))
     elif len(data.shape) == 2:
+        #resto != da zero 
         if data.shape[0] % subdivs:
             data = data[:-(data.shape[0] % subdivs), :]
-        data = data.reshape((data.shape[0] / subdivs, subdivs, data.shape[1]))
+        data = data.reshape((data.shape[0] / subdivs, subdivs, data.shape[1]))  #shape = (time/256, 256, bands(80)) 
     elif len(data.shape) == 3:
         if data.shape[0] % subdivs:
             data = data[:-(data.shape[0] % subdivs), :, :]

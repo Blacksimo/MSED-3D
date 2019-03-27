@@ -4,7 +4,7 @@ import numpy as np
 import time
 import sys
 import matplotlib.pyplot as plot
-from keras.layers import Bidirectional, TimeDistributed, Conv2D, MaxPooling2D, Input, GRU, Dense, Activation, Dropout, Reshape, Permute
+from keras.layers import Bidirectional, TimeDistributed, Conv2D,Conv3D, MaxPooling2D,MaxPooling3D, Input, GRU, Dense, Activation, Dropout, Reshape, Permute
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from sklearn.metrics import confusion_matrix
@@ -16,23 +16,21 @@ K.set_image_data_format('channels_first')
 plot.switch_backend('agg')
 sys.setrecursionlimit(10000)
 
+print(K.image_data_format())
+
 
 def load_data(_feat_folder, _mono, _fold=None):
     feat_file_fold = os.path.join(_feat_folder, 'mbe_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp = np.load(feat_file_fold)
     _X_train, _Y_train, _X_test, _Y_test = dmp['arr_0'],  dmp['arr_1'],  dmp['arr_2'],  dmp['arr_3']
     #(9028, 80) --->  (9028, 40, 2)
-    _X_train = np.reshape(_X_train, (-1, _X_train[1]/2, 1 if _mono else 2))
-    _X_test = np.reshape(_X_test, (-1, _X_test[1]/2, 1 if _mono else 2))
     return _X_train, _Y_train, _X_test, _Y_test
 
 
 def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, _nb_ch):
 
-    spec_start = Input(shape=(-1, data_in.shape[-1], data_in.shape[-2], data_in.shape[-3]))
+    spec_start = Input(shape=(1, data_in.shape[-3], data_in.shape[-2], data_in.shape[-1]))
     spec_x = spec_start
-
-    print ('shape spec_x: ', spec_x.shape)
     
     for _i, _cnt in enumerate(_cnn_pool_size):
         if _i == 0:
@@ -42,7 +40,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, 
             spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size[_i]))(spec_x)
             spec_x = Dropout(dropout_rate)(spec_x)
             print('shape:', spec_x.shape)
-            spec_x = Reshape((-1, data_in[-1]*data_in[-2], data_in.shape[-3]))(spec_x)
+            spec_x = Reshape((-1, 256, 8))(spec_x)
             print('shape:', spec_x.shape)
         else:
             spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
@@ -152,8 +150,13 @@ for fold in [1, 2, 3, 4]:
     # Load feature and labels, pre-process it
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
     print("X SHAPE: ", X.shape)
+    X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
+    print("X SHAPE preprocessed: ", X.shape)
     # Load model
-    model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
+    X = X.reshape(1, X.shape[-3], X.shape[-2], X.shape[-1])
+    X_test = X_test.reshape(1, X_test.shape[0], X_test.shape[1], X_test.shape[2], X_test.shape[3])
+    print("X SHAPE preprocessed ANDREA: ", X.shape)
+    model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb, nb_ch)
 
     # Training
     best_epoch, pat_cnt, best_er, f1_for_best_er, best_conf_mat = 0, 0, 99999, None, None
