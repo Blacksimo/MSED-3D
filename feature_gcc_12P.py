@@ -322,7 +322,6 @@ for audio_filename in os.listdir(audio_folder):
         GCC_120 = np.concatenate((results[0], results[3],results[6],results[9]), 0)   
         GCC_240 = np.concatenate((results[1], results[4],results[7],results[10]), 0)  
         GCC_480 = np.concatenate((results[2], results[5],results[8],results[11]), 0)  
-    #print time.clock(), "time END"
     print time.clock() - start_time, "seconds"
  
     print "GCC_120: ", GCC_120.shape
@@ -345,8 +344,8 @@ for audio_filename in os.listdir(audio_folder):
     tmp_feat_file = os.path.join(feat_folder, '{}_{}.npz'.format(
         audio_filename, 'mon' if is_mono else 'bin'))
     np.savez(tmp_feat_file, mbe, label)
+    #Save GCC in different folders
     if not is_mono:
-        #Save GCC in different folders
         #120
         if '120' in RESOLUTIONS:
             tmp_feat_file_GCC_120= os.path.join(feat_folder, '{}_{}_{}.npz'.format(
@@ -377,6 +376,7 @@ for fold in folds_list:
 
     # mbe
     X_train, Y_train, X_test, Y_test = None, None, None, None
+    #gcc
     if not is_mono:
         # 120
         if '120' in RESOLUTIONS:
@@ -394,6 +394,7 @@ for fold in folds_list:
             feat_folder, '{}_{}.npz'.format(key, 'mon' if is_mono else 'bin'))
         dmp = np.load(tmp_feat_file)
         tmp_mbe, tmp_label = dmp['arr_0'], dmp['arr_1']
+        #gcc
         if not is_mono:
             # 120
             if '120' in RESOLUTIONS:
@@ -514,7 +515,6 @@ for fold in folds_list:
                         (X_test_GCC_480, tmp_GCC_480), 0), np.concatenate((Y_test_GCC_480, tmp_label), 0)
 
     # Normalize the training data, and scale the testing data using the training data weights
-
     scaler = preprocessing.StandardScaler()
     # mbe
     X_train = scaler.fit_transform(X_train)

@@ -43,6 +43,8 @@ def load_data(_feat_folder, _mono, _fold=None):
 
     print("_X_train: ", _X_train.shape)
     print("_X_test: ", _X_test.shape)
+    print("_Y_train: ", _Y_train.shape)
+    print("_Y_test: ", _Y_test.shape)
     return _X_train, _Y_train, _X_test, _Y_test
 
 
@@ -116,7 +118,7 @@ def preprocess_data(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
 
 is_mono = False  # True: mono-channel input, False: binaural input
 
-feat_folder = 'feat_gcc/'
+feat_folder = 'feat_gcc_60/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
@@ -142,7 +144,7 @@ utils.create_folder(__models_dir)
 
 # CRNN model definition
 cnn_nb_filt = 128            # CNN filter size
-cnn_pool_size = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
+cnn_pool_size = [5, 3, 2]   # MODIFIED FOR GCC
 rnn_nb = [32, 32]           # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
 fc_nb = [32]                # Number of FC nodes.  Length of fc_nb =  number of FC layers
 dropout_rate = 0.5          # Dropout after each layer
@@ -157,11 +159,16 @@ for fold in [1, 2, 3, 4]:
     print('----------------------------------------------\n')
     # Load feature and labels, pre-process it
     X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
-    #print("X SHAPE: ", X.shape)
+    print("X_train shape: ", X.shape)
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-    print("X SHAPE preprocessed: ", X.shape)
+    print("X_train shape Preprocessed: ", X.shape)
     # Load model
     model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb)
+
+
+
+
+
 
     # Training
     best_epoch, pat_cnt, best_er, f1_for_best_er, best_conf_mat = 0, 0, 99999, None, None
