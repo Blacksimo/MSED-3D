@@ -39,7 +39,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, 
             spec_x = Activation('relu')(spec_x)
             spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size[_i]))(spec_x)
             spec_x = Dropout(dropout_rate)(spec_x)
-            spec_x = Reshape((-1, 256, 8))(spec_x)
+            spec_x = Reshape((-1,  data_in.shape[-2], 8))(spec_x)
         else:
             spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
             spec_x = BatchNormalization(axis=1)(spec_x)
@@ -62,7 +62,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb, 
     out = Activation('sigmoid', name='strong_out')(spec_x)
 
     _model = Model(inputs=spec_start, outputs=out)
-    _model.compile(optimizer='Adam', loss='binary_crossentropy')
+    _model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
     _model.summary()
     return _model
 
@@ -111,7 +111,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 8   # Decrease this if you want to run on smaller GPU's
+batch_size = 16   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 500      # Training epochs
 patience = int(0.25 * nb_epoch)  # Patience for early stopping
@@ -151,8 +151,11 @@ for fold in [1, 2, 3, 4]:
     X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
     print("X SHAPE preprocessed: ", X.shape)
     #ANDREA-SIMONE RESHAPE FOR 3D 
+
     X = X.reshape(X.shape[-4] ,1, X.shape[-3], X.shape[-2], X.shape[-1])
     X_test = X_test.reshape(X_test.shape[-4] ,1, X_test.shape[-3], X_test.shape[-2], X_test.shape[-1]) #(?,1,2,256,40)
+    #X=np.expand_dims(X, axis=0)
+    #X_test=np.expand_dims(X, axis=0)
      # Load model
     print("X SHAPE preprocessed ANDREA: ", X.shape)
     model = get_model(X, Y, cnn_nb_filt, cnn_pool_size, rnn_nb, fc_nb, nb_ch)
