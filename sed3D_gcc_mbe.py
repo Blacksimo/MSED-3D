@@ -15,7 +15,6 @@ import keras.backend as K
 K.set_image_data_format('channels_first')
 plot.switch_backend('agg')
 sys.setrecursionlimit(10000)
-
 print(K.image_data_format())
 
 #-----------------------------------------------
@@ -272,6 +271,7 @@ for fold in [1, 2, 3, 4]:
     X_MBE, Y, X_test_MBE, Y_test = load_data(feat_folder, is_mono, fold)
     X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
     print("X_MBE shape Preprocessed: ", X_MBE.shape)
+    print("Y_test shape Preprocessed: ", Y_test.shape)
 
     #GCC
     #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
@@ -322,9 +322,10 @@ for fold in [1, 2, 3, 4]:
 
         # Calculate the predictions on test data, in order to calculate ER and F scores
         pred = model.predict([X_test,X_test_GCC])
-        pred_thresh = pred > posterior_thresh
-        score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec)
-
+        #È true o false
+        pred_thresh = pred > posterior_thresh  #0.5 threeshold vedi paper
+        score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec) #Y_TEST shape = (220,256,6)
+        #score list è un dizionario
         f1_overall_1sec_list[i] = score_list['f1_overall_1sec']
         er_overall_1sec_list[i] = score_list['er_overall_1sec']
         pat_cnt = pat_cnt + 1

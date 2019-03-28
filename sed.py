@@ -160,7 +160,8 @@ for fold in [1, 2, 3, 4]:
 
         # Calculate the predictions on test data, in order to calculate ER and F scores
         pred = model.predict(X_test)
-        pred_thresh = pred > posterior_thresh
+        #print(pred)
+        pred_thresh = pred > posterior_thresh  #0.5 threeshold vedi paper se >0.5 c'è un suono (credo)
         score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec)
 
         f1_overall_1sec_list[i] = score_list['f1_overall_1sec']

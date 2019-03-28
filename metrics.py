@@ -10,7 +10,8 @@ import utils
 # Applied Sciences, 6(6):162, 2016
 #####################
 
-
+#IL PAPAER DA CUI IL NOSTRO ESTRAE LA METRICA È LO STESSO VEDI SOPRA, VEDI PAPAER IN REF 30
+#vedi papaer section B, metrics
 def f1_overall_framewise(O, T):
     if len(O.shape) == 3:
         O, T = utils.reshape_3Dto2D(O), utils.reshape_3Dto2D(T)
@@ -40,14 +41,14 @@ def er_overall_framewise(O, T):
 
 def f1_overall_1sec(O, T, block_size):
     if len(O.shape) == 3:
-        O, T = utils.reshape_3Dto2D(O), utils.reshape_3Dto2D(T)
-    new_size = int(np.ceil(O.shape[0] / block_size))
+        O, T = utils.reshape_3Dto2D(O), utils.reshape_3Dto2D(T) # si riuniscono i T in un unico time slot
+    new_size = int(np.ceil(O.shape[0] / block_size)) #block size è fram in 1 sec,new size è cmapionato ogni 43 frames o ogni secondo
     O_block = np.zeros((new_size, O.shape[1]))
     T_block = np.zeros((new_size, O.shape[1]))
     for i in range(0, new_size):
         O_block[i, :] = np.max(O[int(i * block_size):int(i * block_size + block_size - 1), ], axis=0)
         T_block[i, :] = np.max(T[int(i * block_size):int(i * block_size + block_size - 1), ], axis=0)
-    return f1_overall_framewise(O_block, T_block)
+    return f1_overall_framewise(O_block, T_block) #chiama un'altra cazzo di funzione
 
 
 def er_overall_1sec(O, T, block_size):
