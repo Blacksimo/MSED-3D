@@ -87,6 +87,7 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
             spec_x = Dropout(dropout_rate)(spec_x)
     spec_x = Permute((2, 1, 3))(spec_x)
     spec_x = Reshape((data_in_mbe.shape[-2], -1))(spec_x)
+    print("spec_x: ", spec_x.shape)
 
 
     #----------------------------------------------------------------------------------------------------------------------
@@ -111,7 +112,8 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
             spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
     spec_x_gcc = Permute((2, 1, 3))(spec_x_gcc)
     spec_x_gcc = Reshape((data_in_gcc.shape[-2], -1))(spec_x_gcc)
-    
+    print("spec_x_gcc: ", spec_x_gcc.shape)
+
     #non va bene perchè non è piu un tensor
     #spec_conc = Concatenate([spec_x,spec_x_gcc])
     # così invece funziona
@@ -139,12 +141,22 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     for _r in _rnn_nb:
         spec_x_conc = Bidirectional(
             GRU(_r, activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate, return_sequences=True),
-            merge_mode='mul')(spec_x_conc)
+            merge_mode ='concat')(spec_x_conc)
+    
+    """
+    spec_x_conc = Bidirectional(GRU(_rnn_nb[0], activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate,return_sequences= True, go_backwards= True),
+            merge_mode ='concat')(spec_x_conc)
+    print("spec_conc: ", spec_x_conc.shape)
 
+    spec_x_conc = Bidirectional(GRU(_rnn_nb[1], activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate,return_sequences= True,go_backwards= True),
+            merge_mode ='concat')(spec_x_conc)
+    """
+    
     for _f in _fc_nb:
         spec_x_conc = TimeDistributed(Dense(_f))(spec_x_conc)
         spec_x_conc = Dropout(dropout_rate)(spec_x_conc)
-  
+ 
+
     # Dense - out T x 6 CLASSES
     spec_x_conc = TimeDistributed(Dense(data_out.shape[-1]))(spec_x_conc)
     out = Activation('sigmoid', name='strong_out')(spec_x_conc)
@@ -217,7 +229,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 16   # Decrease this if you want to run on smaller GPU's
+batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 500      # Training epochs
 patience = int(0.25 * nb_epoch)  # Patience for early stopping
@@ -257,16 +269,16 @@ for fold in [1, 2, 3, 4]:
     # Load feature and labels, pre-process it
     #----------------------------------------------------------
     #MBE
-    X, Y, X_test, Y_test = load_data(feat_folder, is_mono, fold)
-    X, Y, X_test, Y_test = preprocess_data(X, Y, X_test, Y_test, seq_len, nb_ch)
-    print("X_MBE shape Preprocessed: ", X.shape)
+    X_MBE, Y, X_test_MBE, Y_test = load_data(feat_folder, is_mono, fold)
+    X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
+    print("X_MBE shape Preprocessed: ", X_MBE.shape)
 
     #GCC
     #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
     X_GCC =np.random.rand(181717,180)
     Y_GCC =np.random.rand(181717,6)
-    X_test_GCC =np.random.rand(181717,180)
-    Y_test_GCC =np.random.rand(181717,6)
+    X_test_GCC =np.random.rand(56378,180)
+    Y_test_GCC =np.random.rand(56378,6)
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
 
@@ -274,20 +286,21 @@ for fold in [1, 2, 3, 4]:
     # 3D Conv layer Reshape
     #------------------------------------------------
     #MBE
-    X = X.reshape(X.shape[-4] ,1, X.shape[-3], X.shape[-2], X.shape[-1])
-    X_test = X_test.reshape(X_test.shape[-4] ,1, X_test.shape[-3], X_test.shape[-2], X_test.shape[-1]) #(?,1,2,256,40)
-    print("X_MBE 3DConv: ", X.shape)
+    X_MBE = X_MBE.reshape(X_MBE.shape[-4] ,1, X_MBE.shape[-3], X_MBE.shape[-2], X_MBE.shape[-1])
+    X_test_MBE = X_test_MBE.reshape(X_test_MBE.shape[-4] ,1, X_test_MBE.shape[-3], X_test_MBE.shape[-2], X_test_MBE.shape[-1]) #(?,1,2,256,40)
+    print("X_MBE 3DConv: ", X_MBE.shape)
     #GCC
     X_GCC = X_GCC.reshape(X_GCC.shape[-4] ,1, X_GCC.shape[-3], X_GCC.shape[-2], X_GCC.shape[-1])
     X_test_GCC = X_test_GCC.reshape(X_test_GCC.shape[-4] ,1, X_test_GCC.shape[-3], X_test_GCC.shape[-2], X_test_GCC.shape[-1]) #(?,1,3,256,60)
-    print("X_GCC 3DConv: ", X.shape)
+    print("X_GCC 3DConv: ", X_GCC.shape)
 
 
 
     #------------------------------------------
     # Load model
     #-------------------------------------------
-    model = get_model(X, X_GCC, Y, cnn_nb_filt, cnn_pool_size_mbe,cnn_pool_size_gcc, rnn_nb, fc_nb, nb_ch, gcc_ch)
+    #L'output è uno quindi è uguale Y o Y_MBE, uguale per Y_test
+    model = get_model(X_MBE, X_GCC, Y, cnn_nb_filt, cnn_pool_size_mbe,cnn_pool_size_gcc, rnn_nb, fc_nb, nb_ch, gcc_ch)
 
     #-------------------------------------------
     # Training
@@ -298,9 +311,9 @@ for fold in [1, 2, 3, 4]:
     for i in range(nb_epoch):
         print('Epoch : {} '.format(i), end='')
         hist = model.fit(
-            X, Y,
+            [X_MBE,X_GCC], Y,
             batch_size=batch_size,
-            validation_data=[X_test, Y_test],
+            validation_data=[[X_test_MBE,X_test_GCC], Y_test],
             epochs=1,
             verbose=1
         )
@@ -308,7 +321,7 @@ for fold in [1, 2, 3, 4]:
         tr_loss[i] = hist.history.get('loss')[-1]
 
         # Calculate the predictions on test data, in order to calculate ER and F scores
-        pred = model.predict(X_test)
+        pred = model.predict([X_test,X_test_GCC])
         pred_thresh = pred > posterior_thresh
         score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec)
 
