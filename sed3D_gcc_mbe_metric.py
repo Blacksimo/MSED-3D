@@ -225,14 +225,11 @@ class Metrics(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self._er = 0
         self._er_list = []
-	    self._er_prev = 0
-	    self._fail_count=0
-
+        self._er_prev = 0
+        self._fail_count=0
         self._f1 = 0
         self._f1_list = []
     def on_epoch_end(self,epoch, batch, logs={}):
-        print('validation:',len(self.validation_data))
-        #print('shape: ', self.validation_data.shape)
         X_val,X_val_gcc, y_val = self.validation_data[0], self.validation_data[1],self.validation_data[2]
         # Calculate the predictions on test data, in order to calculate ER and F scores
         pred = model.predict([X_val,X_val_gcc])
@@ -247,8 +244,8 @@ class Metrics(keras.callbacks.Callback):
         if  self._er > self._er_prev:
             self._fail_count+=1
             if self._fail_count >= 10:
-            print('Epoch: ', epoch, ' Custom ER: ', self._er, ' Failcount: ', self._fail_count )
-            self.model.stop_training = True
+                print('Epoch: ', epoch, ' Custom ER: ', self._er, ' Failcount: ', self._fail_count )
+                self.model.stop_training = True
         else:
             #resetto il patience count
             self._fail_count = 0
@@ -257,10 +254,10 @@ class Metrics(keras.callbacks.Callback):
         self._er_prev = self._er
         self._er_list.append(self._er)
         self._f1_list.append(self._f1)
-	    return
+        return
 
     def get_data(self):
-        return self._data, self._er_list, self._f1,self._f1_list
+        return self._er, self._er_list, self._f1,self._f1_list
    
 
 
@@ -365,7 +362,7 @@ for fold in [1, 2, 3, 4]:
     # Training
     #-------------------------------------------
     best_epoch, pat_cnt, best_er, f1_for_best_er, best_conf_mat = 0, 0, 99999, None, None
-    tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list = [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch
+    #tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list = [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch, [0] * nb_epoch
     posterior_thresh = 0.5
 
     #early_stop = EarlyStopping(monitor='val_custom_loss', patience = 1, mode='min')
@@ -375,21 +372,22 @@ for fold in [1, 2, 3, 4]:
             [X_MBE,X_GCC], Y,
             batch_size=batch_size,
             validation_data=[[X_test_MBE,X_test_GCC], Y_test],
-            epochs=2,
+            epochs=3,
             verbose=1,
             callbacks=[my_metrics]
         )
-
+    print('Training END')
     last_er, er_overall_1sec_list, last_f1, f1_overall_1sec_list  = my_metrics.get_data()
-    print('Training END:', last_er)
+    val_loss = hist.history.get('val_loss')
+    tr_loss = hist.history.get('loss')
 
-
-    val_loss = hist.history.get('val_loss')[-1]
-    tr_loss = hist.history.get('loss')[-1]
-
+    print('Saving model ...')
     model.save(os.path.join(__models_dir, '{}_fold_{}_model.h5'.format(__fig_name, fold)))
+    print('Model saved!')
 
-     
+    plot_functions(len(f1_overall_1sec_list), tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list, '_fold_{}'.format(fold))
+
+    print('')
     print('tr Er : {}, val Er : {}, F1_overall : {}, ER_overall : {}'.format(
                 tr_loss, val_loss, f1_overall_1sec_list[-1], er_overall_1sec_list[-1]))
 
