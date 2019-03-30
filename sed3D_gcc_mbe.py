@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import print_function
 import os
 import numpy as np
@@ -230,8 +231,9 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 nb_ch = 1 if is_mono else 2
 batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
-nb_epoch = 500      # Training epochs
-patience = int(0.25 * nb_epoch)  # Patience for early stopping
+nb_epoch = 1000      # Training epochs
+patience = 100  # Patience for early stopping
+#patience = int(0.25 * nb_epoch)  # Patience for early stopping
 gcc_ch = 3 #gcc resolutions 
 
 # Number of frames in 1 second, required to calculate F and ER for 1 sec segments.
@@ -321,7 +323,7 @@ for fold in [1, 2, 3, 4]:
         tr_loss[i] = hist.history.get('loss')[-1]
 
         # Calculate the predictions on test data, in order to calculate ER and F scores
-        pred = model.predict([X_test,X_test_GCC])
+        pred = model.predict([X_test_MBE,X_test_GCC])
         #È true o false
         pred_thresh = pred > posterior_thresh  #0.5 threeshold vedi paper
         score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec) #Y_TEST shape = (220,256,6)
