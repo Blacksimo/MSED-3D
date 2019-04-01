@@ -188,9 +188,9 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     # extract mel band
     #-------------------------------
     spec, n_fft = librosa.core.spectrum._spectrogram(
-        y=_y, n_fft=_nfft, hop_length=_nfft//2, power=1)
+        y=_y, n_fft=_nfft, hop_length=_nfft//2, power=1) #hpe lenght nfft/2 significa overlap 50%
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
-    mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel)
+    mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel) #fmax default è sr/2.0 >> 22050
     # applicamio il filtro e facciamo il logaritmo
     return np.log(np.dot(mel_basis, spec)), FFT_120, FFT_240, FFT_480
 
