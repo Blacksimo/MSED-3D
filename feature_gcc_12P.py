@@ -112,7 +112,7 @@ def extract_gcc(_FFT,_res, _output,_bar):
         time = time[partial_index*3:]
         
     TAU = np.arange(-29,31,1)
-    gcc = np.zeros((time.shape[0],len(TAU)))
+    gcc = np.zeros((time.shape[0],len(TAU)),dtype=np.complex_)
     progress_bar_delta = 0
     #Total bins
     N = _FFT.shape[1]//2
@@ -122,11 +122,12 @@ def extract_gcc(_FFT,_res, _output,_bar):
         for i,t in enumerate(time):
             gcc_sum = 0
             for freq in range(N): 
-                fraction_term = (_FFT[t][freq] * np.conjugate(_FFT[t][freq+N-1]))/(abs(_FFT[t][freq]) * abs(_FFT[t][freq+N-1]))
+                X_1 = _FFT[t][freq]
+                X_2 = _FFT[t][freq+N-1]
+                fraction_term = (X_1 * np.conjugate(X_2))/(abs(X_1) * abs(X_2))
                 exp_term = np.exp((2j*math.pi*freq*delta)/N) 
                 #exp_term = np.real(np.exp(np.complex((2*math.pi*freq*delta))/40))
                 gcc_sum += fraction_term*exp_term
-                
             gcc[i][delta] = gcc_sum
         #print (delta)
         _bar.update(1)
@@ -189,6 +190,7 @@ def extract_mbe(_y, _sr, _nfft, _nb_mel):
     #-------------------------------
     spec, n_fft = librosa.core.spectrum._spectrogram(
         y=_y, n_fft=_nfft, hop_length=_nfft//2, power=1) #hpe lenght nfft/2 significa overlap 50%
+        #f unspecified, defaults to win_length = n_fft.--> 40 ms perchè 2048/44100
     # mel_basis è un filtro che si applica all'fft, per ottenere la mel band
     mel_basis = librosa.filters.mel(sr=_sr, n_fft=_nfft, n_mels=_nb_mel) #fmax default è sr/2.0 >> 22050
     # applicamio il filtro e facciamo il logaritmo
@@ -212,7 +214,6 @@ def progress(count, total, status=''):
 #              Main script starts here
 # ###################################################################
 
-#RESOLUTIONS = ['120']
 RESOLUTIONS = ['120','240','480']
 processed_audio_count = 0
 is_mono = False

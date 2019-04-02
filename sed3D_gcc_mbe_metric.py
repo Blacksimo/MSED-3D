@@ -214,8 +214,8 @@ def preprocess_data_GCC(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
     _X_test = utils.split_in_seqs(_X_test, _seq_len)
     _Y_test = utils.split_in_seqs(_Y_test, _seq_len)
 
-    _X = utils.split_multi_channels(_X, _nb_ch)
-    _X_test = utils.split_multi_channels(_X_test, _nb_ch)
+    _X = utils.split_multi_channels_COMPLEX(_X, _nb_ch)
+    _X_test = utils.split_multi_channels_COMPLEX(_X_test, _nb_ch)
     return _X, _Y, _X_test, _Y_test
 
 
@@ -318,8 +318,7 @@ for fold in [1, 2, 3, 4]:
     print("X_MBE shape Preprocessed: ", X_MBE.shape)
     print("Y_test shape Preprocessed: ", Y_test.shape)
 
-     #GCC
-    #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
+    #MBE per i TEST
     X_MBE =np.random.rand(1024,80)
     Y =np.random.rand(1024,6)
     X_test_MBE =np.random.rand(512,80)
@@ -331,10 +330,12 @@ for fold in [1, 2, 3, 4]:
 
     #GCC
     #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
-    X_GCC =np.random.rand(1024,180)
-    Y_GCC =np.random.rand(1024,6)
-    X_test_GCC =np.random.rand(512,180)
-    Y_test_GCC =np.random.rand(512,6)
+
+    X_GCC =np.zeros((1024,180),dtype=np.complex_)
+    Y_GCC =np.zeros((1024,6))
+    X_test_GCC =np.zeros((512,180),dtype=np.complex_)
+    Y_test_GCC =np.zeros((512,6))
+
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
 
