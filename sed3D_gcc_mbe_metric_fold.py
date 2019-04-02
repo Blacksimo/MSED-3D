@@ -319,7 +319,7 @@ for fold_u in [1,2,3,4]:
     #----------------------------------------------------------
     #MBE
     X_MBE_fld, Y_fld, X_test_MBE_fld, Y_test_fld = load_data(feat_folder, is_mono, fold_u)
-    if X_MBE is None:
+    if X_MBE is None: #va bene uno qualunque che sia None
         X_MBE = X_MBE_fld
         Y = Y_fld
         X_test_MBE = X_test_MBE_fld
@@ -338,7 +338,7 @@ for fold_u in [1,2,3,4]:
     X_test_GCC_fld =np.zeros((225512,180),dtype=np.complex_)
     Y_test_GCC_fld =np.zeros((225512,6))
     
-    if X_GCC is None:
+    if X_GCC is None: #va bene uno qualunque che sia None
         X_GCC = X_GCC_fld
         Y_GCC = Y_GCC_fld
         X_test_GCC = X_test_GCC_fld

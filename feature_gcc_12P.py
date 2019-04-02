@@ -16,7 +16,6 @@ import multiprocessing as mp
 from multiprocessing import Process, Queue
 import time
 from tqdm import tqdm
-
 def load_audio(filename, mono=True, fs=44100):
     
 
@@ -261,6 +260,9 @@ for audio_filename in os.listdir(audio_folder):
     y, sr = load_audio(audio_file, mono=is_mono, fs=sr)
     mbe = None
     FFT = [None,None,None]
+    FFT_120 = None
+    FFT_240= None
+    FFT_480 = None
 
     if is_mono:
         # shape = (freq, time)
