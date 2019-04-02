@@ -16,7 +16,6 @@ import multiprocessing as mp
 from multiprocessing import Process, Queue
 import time
 from tqdm import tqdm
-from p_tqdm import p_map
 
 def load_audio(filename, mono=True, fs=44100):
     
@@ -95,12 +94,11 @@ def extract_gcc(_FFT,_res, _output,_bar):
     #----
     #TIME
     #---------------------------------------
-    time = np.arange(0,60,1)# per le prove
-    #time = np.arange(0,_FFT.shape[0],1)
+    #time = np.arange(0,60,1)# per le prove
+    time = np.arange(0,_FFT.shape[0],1)
     #--------------------------------------
     #12 CORES, 4 processes for each resolution
     partial_index = time.shape[0]//4
-
 
     if time_cut <= 3:
        time = time[0:partial_index]
@@ -133,8 +131,6 @@ def extract_gcc(_FFT,_res, _output,_bar):
         _bar.update(1)
         #progress(progress_bar_delta, 60, status=str(_res))
     _bar.close()
-    #print('gcc shape: ', gcc.shape)
-
     _output.put((_res,gcc))
     
     #return gcc
