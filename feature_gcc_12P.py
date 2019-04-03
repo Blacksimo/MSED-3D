@@ -17,8 +17,6 @@ from multiprocessing import Process, Queue
 import time
 from tqdm import tqdm
 def load_audio(filename, mono=True, fs=44100):
-    
-
     file_base, file_extension = os.path.splitext(filename)
     if file_extension == '.wav':
         _audio_file = wave.open(filename)
@@ -93,10 +91,10 @@ def extract_gcc(_FFT,_res, _output,_bar):
     #----
     #TIME
     #---------------------------------------
-    #time = np.arange(0,60,1)# per le prove
+    #time = np.arange(0,30,1)# per le prove
     time = np.arange(0,_FFT.shape[0],1)
     #--------------------------------------
-    #12 CORES, 4 processes for each resolution
+    #12 th, 4 processes for each resolution
     partial_index = time.shape[0]//4
 
     if time_cut <= 3:
@@ -227,7 +225,7 @@ evaluation_setup_folder = '../TUT-sound-events-2017-development/evaluation_setup
 audio_folder = '../TUT-sound-events-2017-development/audio/street'
 
 # Output
-feat_folder = 'feat_gcc_th2/'
+feat_folder = 'feat_gcc_th/'
 utils.create_folder(feat_folder)
 
 # User set parameters
@@ -296,11 +294,11 @@ for audio_filename in os.listdir(audio_folder):
         output = mp.Queue()
         
         processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output,tqdm(total=60,position=res)))for res in range(1,13)]
-        
+       # print('Processes started')
         # Run processes
         for p in processes:
             p.start()
-        print('Processes started')
+        
 
         results =  [output.get() for p in processes]
 
@@ -327,7 +325,7 @@ for audio_filename in os.listdir(audio_folder):
     print "GCC_240: ", GCC_240.shape
     print "GCC_480: ", GCC_480.shape
     print "mbe: ", mbe.shape
-
+    print('--------------------------------------------------\n')
     label = np.zeros((mbe.shape[0], len(__class_labels)))
     tmp_data = np.array(desc_dict[audio_filename])
 

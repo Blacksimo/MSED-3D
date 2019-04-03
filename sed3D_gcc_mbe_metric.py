@@ -313,11 +313,12 @@ for fold in [1, 2, 3, 4]:
     # Load feature and labels, pre-process it
     #----------------------------------------------------------
     #MBE
+    """
     X_MBE, Y, X_test_MBE, Y_test = load_data(feat_folder, is_mono, fold)
     X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
     print("X_MBE shape Preprocessed: ", X_MBE.shape)
     print("Y_test shape Preprocessed: ", Y_test.shape)
-
+    """
     #MBE per i TEST
     X_MBE =np.random.rand(1024,80)
     Y =np.random.rand(1024,6)
@@ -330,13 +331,14 @@ for fold in [1, 2, 3, 4]:
 
     #GCC
     #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
-
+    
+    # GCC PER I TEST
     X_GCC =np.zeros((1024,180),dtype=np.complex_)
     Y_GCC =np.zeros((1024,6))
     X_test_GCC =np.zeros((512,180),dtype=np.complex_)
     Y_test_GCC =np.zeros((512,6))
 
-    X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
+    X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data_GCC(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
 
     #------------------------------------------------
