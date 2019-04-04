@@ -396,7 +396,7 @@ for fold in [1, 2, 3, 4]:
 
     print('Saving model ...')
     model.save(os.path.join(__models_dir, '{}_fold_{}_model.h5'.format(__fig_name, fold)))
-    print('Model saved!')
+    print('Model saved!\n')
 
     plot_functions(len(f1_overall_1sec_list), tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list, '_fold_{}'.format(fold))
 
@@ -407,68 +407,20 @@ for fold in [1, 2, 3, 4]:
     f1_for_best_er = f1_overall_1sec_list[best_index]
     best_conf_mat = conf_mat_list[best_index]
     #BEST EPOCH
+    print('-------------------BEST EPOCH---------------------------\n')
     print('best_epoch (index+1): {}'.format(best_index+1))
     print('best_er: {}'.format(best_er))
     print('f1_for_best_er: {}'.format(f1_for_best_er))
     print('best_conf_mat: {}'.format(best_conf_mat))
     print('best_conf_mat_diag: {}'.format(np.diag(best_conf_mat)))
-
+    print('\n')
+   
     #LAST
-    print('')
+    print('---------------------LAST  EPOCH-------------------------\n')
     print('tr Er : {}, val Er : {}, F1_overall : {}, ER_overall : {}'.format(
                 tr_loss, val_loss, f1_overall_1sec_list[-1], er_overall_1sec_list[-1]))
-
-
+    print('\n')
 """
-
-    for i in range(nb_epoch):
-        print('Epoch : {} '.format(i), end='')
-        hist = model.fit(
-            [X_MBE,X_GCC], Y,
-            batch_size=batch_size,
-            validation_data=[[X_test_MBE,X_test_GCC], Y_test],
-            epochs=1,
-            verbose=1
-        )
-        val_loss[i] = hist.history.get('val_loss')[-1]
-        tr_loss[i] = hist.history.get('loss')[-1]
-
-        # Calculate the predictions on test data, in order to calculate ER and F scores
-        pred = model.predict([X_test_MBE,X_test_GCC])
-        #È true o false
-        pred_thresh = pred > posterior_thresh  #0.5 threeshold vedi paper
-        score_list = metrics.compute_scores(pred_thresh, Y_test, frames_in_1_sec=frames_1_sec) #Y_TEST shape = (220,256,6)
-        #score list è un dizionario
-        f1_overall_1sec_list[i] = score_list['f1_overall_1sec']
-        er_overall_1sec_list[i] = score_list['er_overall_1sec']
-        pat_cnt = pat_cnt + 1
-
-        # Calculate confusion matrix
-        test_pred_cnt = np.sum(pred_thresh, 2)
-        Y_test_cnt = np.sum(Y_test, 2)
-        conf_mat = confusion_matrix(Y_test_cnt.reshape(-1), test_pred_cnt.reshape(-1))
-        conf_mat = conf_mat / (utils.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
-
-        if er_overall_1sec_list[i] < best_er:
-            best_conf_mat = conf_mat
-            best_er = er_overall_1sec_list[i]
-            f1_for_best_er = f1_overall_1sec_list[i]
-            model.save(os.path.join(__models_dir, '{}_fold_{}_model.h5'.format(__fig_name, fold)))
-            best_epoch = i
-            pat_cnt = 0
-
-        print('tr Er : {}, val Er : {}, F1_overall : {}, ER_overall : {} Best ER : {}, best_epoch: {}'.format(
-                tr_loss[i], val_loss[i], f1_overall_1sec_list[i], er_overall_1sec_list[i], best_er, best_epoch))
-        plot_functions(nb_epoch, tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list, '_fold_{}'.format(fold))
-        if pat_cnt > patience:
-            break
-    avg_er.append(best_er)
-    avg_f1.append(f1_for_best_er)
-    print('saved model for the best_epoch: {} with best_f1: {} f1_for_best_er: {}'.format(
-        best_epoch, best_er, f1_for_best_er))
-    print('best_conf_mat: {}'.format(best_conf_mat))
-    print('best_conf_mat_diag: {}'.format(np.diag(best_conf_mat)))
-
 print('\n\nMETRICS FOR ALL FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(avg_er, avg_f1))
 print('MODEL AVERAGE OVER FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(np.mean(avg_er), np.mean(avg_f1)))
 """
