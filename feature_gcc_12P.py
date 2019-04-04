@@ -91,8 +91,8 @@ def extract_gcc(_FFT,_res, _output,_bar):
     #----
     #TIME
     #---------------------------------------
-    #time = np.arange(0,30,1)# per le prove
-    time = np.arange(0,_FFT.shape[0],1)
+    time = np.arange(0,30,1)# per le prove
+    #time = np.arange(0,_FFT.shape[0],1)
     #--------------------------------------
     #12 th, 4 processes for each resolution
     partial_index = time.shape[0]//4

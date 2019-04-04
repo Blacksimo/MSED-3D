@@ -229,6 +229,7 @@ class Metrics(keras.callbacks.Callback):
         self._fail_count=0
         self._f1 = 0
         self._f1_list = []
+        self._cf_list = []
     def on_epoch_end(self,epoch, batch, logs={}):
         X_val,X_val_gcc, y_val = self.validation_data[0], self.validation_data[1],self.validation_data[2]
         # Calculate the predictions on test data, in order to calculate ER and F scores
@@ -240,6 +241,15 @@ class Metrics(keras.callbacks.Callback):
         #score list è un dizionario
         self._f1 = score_list['f1_overall_1sec']
         self._er = score_list['er_overall_1sec']
+
+        # Calculate confusion matrix
+        test_pred_cnt = np.sum(pred_thresh, 2)
+        Y_test_cnt = np.sum(y_val, 2)
+        conf_mat = confusion_matrix(Y_test_cnt.reshape(-1), test_pred_cnt.reshape(-1))
+        conf_mat = conf_mat / (utils.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
+        self._cf_list.append(conf_mat)
+
+
 
         if  self._er > self._er_prev:
             self._fail_count+=1
@@ -257,7 +267,7 @@ class Metrics(keras.callbacks.Callback):
         return
 
     def get_data(self):
-        return self._er, self._er_list, self._f1,self._f1_list
+        return self._er, self._er_list, self._f1,self._f1_list,self._cf_list
    
 
 
@@ -323,7 +333,7 @@ for fold in [1, 2, 3, 4]:
     X_MBE =np.random.rand(1024,80)
     Y =np.random.rand(1024,6)
     X_test_MBE =np.random.rand(512,80)
-    Y_test =np.random.rand(512,6)
+    Y_test =np.zeros((512,6))
     X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
     print("X_mbe shape Preprocessed: ", X_MBE.shape)
 
@@ -380,7 +390,7 @@ for fold in [1, 2, 3, 4]:
             callbacks=[my_metrics]
         )
     print('Training END')
-    last_er, er_overall_1sec_list, last_f1, f1_overall_1sec_list  = my_metrics.get_data()
+    last_er, er_overall_1sec_list, last_f1, f1_overall_1sec_list, conf_mat_list  = my_metrics.get_data()
     val_loss = hist.history.get('val_loss')
     tr_loss = hist.history.get('loss')
 
@@ -390,9 +400,24 @@ for fold in [1, 2, 3, 4]:
 
     plot_functions(len(f1_overall_1sec_list), tr_loss, val_loss, f1_overall_1sec_list, er_overall_1sec_list, '_fold_{}'.format(fold))
 
+
+    #GET THE EPOCH WITH min ER  framewise
+    best_index = np.argmin(er_overall_1sec_list)
+    best_er = er_overall_1sec_list[best_index]
+    f1_for_best_er = f1_overall_1sec_list[best_index]
+    best_conf_mat = conf_mat_list[best_index]
+    #BEST EPOCH
+    print('best_epoch (index+1): {}'.format(best_index+1))
+    print('best_er: {}'.format(best_er))
+    print('f1_for_best_er: {}'.format(f1_for_best_er))
+    print('best_conf_mat: {}'.format(best_conf_mat))
+    print('best_conf_mat_diag: {}'.format(np.diag(best_conf_mat)))
+
+    #LAST
     print('')
     print('tr Er : {}, val Er : {}, F1_overall : {}, ER_overall : {}'.format(
                 tr_loss, val_loss, f1_overall_1sec_list[-1], er_overall_1sec_list[-1]))
+
 
 """
 
