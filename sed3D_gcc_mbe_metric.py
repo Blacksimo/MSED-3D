@@ -426,7 +426,7 @@ for fold in [1, 2, 3, 4]:
     print('Saving history array')
     tmp_feat_file = os.path.join(train_story_folder, '{}_story.npz'.format(
         fold))
-    np.savez(tmp_feat_file, er_overall_1sec_list, label,f1_overall_1sec_list,conf_mat_list,best_index)
+    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,conf_mat_list,best_index)
 
     avg_er.append(best_er)
     avg_f1.append(f1_for_best_er)
