@@ -444,7 +444,7 @@ for key in test_dict.keys():
                     (X_test_GCC_480, tmp_GCC_480), 0), np.concatenate((Y_test_GCC_480, tmp_label), 0)
 
 fold = 9
-# Normalize the training data, and scale the testing data using the training data weights
+# Normalize the training data, and scale the testing data using the training data weight
 scaler = preprocessing.StandardScaler().fit(X_test)
 #scaler = preprocessing.StandardScaler()
 #X_test = scaler.fit_transform(X_test)
