@@ -249,8 +249,6 @@ class Metrics(keras.callbacks.Callback):
         conf_mat = conf_mat / (utils.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
         self._cf_list.append(conf_mat)
 
-
-
         if  self._er > self._er_prev:
             self._fail_count+=1
             if self._fail_count >= 10:
@@ -387,7 +385,7 @@ for fold in [1, 2, 3, 4]:
             batch_size=batch_size,
             validation_data=[[X_test_MBE,X_test_GCC], Y_test],
             epochs=3,
-            verbose=1,
+            verbose=0,
             callbacks=[my_metrics]
         )
     print('Training END')
@@ -422,14 +420,16 @@ for fold in [1, 2, 3, 4]:
                 tr_loss, val_loss, f1_overall_1sec_list[-1], er_overall_1sec_list[-1]))
     print('\n')
 
+    
+    avg_er.append(best_er)
+    avg_f1.append(f1_for_best_er)
+
     #save
     print('Saving history array')
     tmp_feat_file = os.path.join(train_story_folder, '{}_story.npz'.format(
         fold))
-    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,conf_mat_list,best_index)
+    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,conf_mat_list,best_index,val_loss,tr_loss)
 
-    avg_er.append(best_er)
-    avg_f1.append(f1_for_best_er)
 
 print('\n\nMETRICS FOR ALL FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(avg_er, avg_f1))
 print('MODEL AVERAGE OVER FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(np.mean(avg_er), np.mean(avg_f1)))

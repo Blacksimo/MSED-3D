@@ -459,6 +459,8 @@ if not is_mono:
     # GCC
     #120
     if '120' in RESOLUTIONS:
+        scaler_120 = preprocessing.StandardScaler().fit(X_test_GCC_120)
+        X_test_GCC_120 =scaler_120.transform(X_test_GCC_120)
         normalized_feat_file_GCC_120 = os.path.join(
             feat_folder, 'GCC_120_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
         np.savez(normalized_feat_file_GCC_120, X_test_GCC_120, Y_test_GCC_120)
@@ -466,6 +468,8 @@ if not is_mono:
 
     #240
     if '240' in RESOLUTIONS:
+        scaler_240 = preprocessing.StandardScaler().fit(X_test_GCC_240)
+        X_test_GCC_240 =scaler_240.transform(X_test_GCC_240)
         normalized_feat_file_GCC_240 = os.path.join(
             feat_folder, 'GCC_240_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
         np.savez(normalized_feat_file_GCC_240,X_test_GCC_240, Y_test_GCC_240)
@@ -473,6 +477,8 @@ if not is_mono:
 
     #480
     if '480' in RESOLUTIONS:
+        scaler_480 = preprocessing.StandardScaler().fit(X_test_GCC_480)
+        X_test_GCC_480  =scascaler_480ler.transform(X_test_GCC_480)
         normalized_feat_file_GCC_480 = os.path.join(
             feat_folder, 'GCC_480_{}_fold{}.npz'.format('mon' if is_mono else 'bin', fold))
         np.savez(normalized_feat_file_GCC_480, Y_test_GCC_480)
