@@ -278,6 +278,7 @@ class Metrics(keras.callbacks.Callback):
 is_mono = False  # True: mono-channel input, False: binaural input
 
 feat_folder = 'feat/'
+train_story_folder = 'story/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
@@ -420,7 +421,15 @@ for fold in [1, 2, 3, 4]:
     print('tr Er : {}, val Er : {}, F1_overall : {}, ER_overall : {}'.format(
                 tr_loss, val_loss, f1_overall_1sec_list[-1], er_overall_1sec_list[-1]))
     print('\n')
-"""
+
+    #save
+    print('Saving history array')
+    tmp_feat_file = os.path.join(train_story_folder, '{}_story.npz'.format(
+        fold))
+    np.savez(tmp_feat_file, er_overall_1sec_list, label,f1_overall_1sec_list,conf_mat_list,best_index)
+
+    avg_er.append(best_er)
+    avg_f1.append(f1_for_best_er)
+
 print('\n\nMETRICS FOR ALL FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(avg_er, avg_f1))
 print('MODEL AVERAGE OVER FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(np.mean(avg_er), np.mean(avg_f1)))
-"""
