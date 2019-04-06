@@ -164,7 +164,9 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     out = Activation('sigmoid', name='strong_out')(spec_x_conc)
 
     _model = Model(inputs=[spec_start, spec_start_gcc], outputs=out)
-    _model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
+    adam=keras.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    _model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
+    #_model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
     _model.summary()
     return _model
 
