@@ -218,7 +218,7 @@ class Metrics(keras.callbacks.Callback):
 
         #error rate over epoch
         self.er_mean_batch += self._er
-        self.er_mean= float(self.er_mean_batch) / epoch+1
+        self.er_mean= float(self.er_mean_batch) / (epoch+1)
         # Calculate confusion matrix
         test_pred_cnt = np.sum(pred_thresh, 2)
         Y_test_cnt = np.sum(y_val, 2)

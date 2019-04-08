@@ -248,7 +248,7 @@ class Metrics(keras.callbacks.Callback):
 
         #error rate over epoch
         self.er_mean_batch += self._er
-        self.er_mean= float(self.er_mean_batch) / epoch+1
+        self.er_mean= float(self.er_mean_batch) / (epoch+1)
         # Calculate confusion matrix
         test_pred_cnt = np.sum(pred_thresh, 2)
         Y_test_cnt = np.sum(y_val, 2)
@@ -266,7 +266,7 @@ class Metrics(keras.callbacks.Callback):
             #resetto il patience count
             self._fail_count = 0
         #aggiorno
-	    print('epoch: ' , epoch,' Mean: ', self.er_mean ,' Custom ER: ', self._er,' Failcount: ', self._fail_count )
+         print(' Mean: ', self.er_mean ,' Custom ER: ', self._er,' Failcount: ', self._fail_count ,' F1 :',self._f1)
         self._er_prev = self._er
         self.er_mean_prev = self.er_mean
         self._er_list.append(self._er)
