@@ -65,32 +65,7 @@ def load_data_GCC(_feat_folder, _mono, _fold=None):
 
 
 
-def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_mbe,_cnn_pool_size_gcc, _rnn_nb, _fc_nb, _nb_ch, _gcc_ch):
-
-    #----------------------------------------------------------------------------------------------------------------------
-    # MBE branch
-    #----------------------------------------------------------------------------------------------------------------------
-    spec_start = Input(shape=(data_in_mbe.shape[-4], data_in_mbe.shape[-3], data_in_mbe.shape[-2], data_in_mbe.shape[-1]))
-    spec_x = spec_start
-    
-    for _i, _cnt in enumerate(_cnn_pool_size_mbe):
-        if _i == 0:
-            spec_x = Conv3D(filters=_cnn_nb_filt, kernel_size=(_nb_ch, 3, 3), padding='same')(spec_x)
-            spec_x = BatchNormalization(axis=1)(spec_x)
-            spec_x = Activation('relu')(spec_x)
-            spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_mbe[_i]))(spec_x)
-            spec_x = Dropout(dropout_rate)(spec_x)
-            spec_x = Reshape((-1,  data_in_mbe.shape[-2], 8))(spec_x)
-        else:
-            spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
-            spec_x = BatchNormalization(axis=1)(spec_x)
-            spec_x = Activation('relu')(spec_x)
-            spec_x = MaxPooling2D(pool_size=(1, _cnn_pool_size_mbe[_i]))(spec_x)
-            spec_x = Dropout(dropout_rate)(spec_x)
-    spec_x = Permute((2, 1, 3))(spec_x)
-    spec_x = Reshape((data_in_mbe.shape[-2], -1))(spec_x)
-    print("spec_x: ", spec_x.shape)
-
+def get_model( data_in_gcc, data_out, _cnn_nb_filt,_cnn_pool_size_gcc, _rnn_nb, _fc_nb, _nb_ch, _gcc_ch):
 
     #----------------------------------------------------------------------------------------------------------------------
     # GCC branch
@@ -105,7 +80,7 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
             spec_x_gcc = Activation('relu')(spec_x_gcc)
             spec_x_gcc = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_gcc[_i]))(spec_x_gcc)
             spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
-            spec_x_gcc = Reshape((-1,  data_in_gcc.shape[-2], 8))(spec_x_gcc)
+            spec_x_gcc = Reshape((-1, data_in_gcc.shape[-2], 8))(spec_x_gcc)
         else:
             spec_x_gcc = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x_gcc)
             spec_x_gcc = BatchNormalization(axis=1)(spec_x_gcc)
@@ -116,11 +91,6 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     spec_x_gcc = Reshape((data_in_gcc.shape[-2], -1))(spec_x_gcc)
     print("spec_x_gcc: ", spec_x_gcc.shape)
 
-    #non va bene perchè non è piu un tensor
-    #spec_conc = Concatenate([spec_x,spec_x_gcc])
-    # così invece funziona
-    spec_x_conc = Concatenate()([spec_x,spec_x_gcc])
-    print("spec_conc: ", spec_x_conc.shape)
     #TODO       
     """
             concatenazione(spec_x - spec_x_gcc)
@@ -141,9 +111,9 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     #----------------------------------------------------
     
     for _r in _rnn_nb:
-        spec_x_conc = Bidirectional(
+        spec_x_gcc = Bidirectional(
             GRU(_r, activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate, return_sequences=True),
-            merge_mode ='concat')(spec_x_conc)
+            merge_mode ='concat')(spec_x_gcc)
     
     """
     spec_x_conc = Bidirectional(GRU(_rnn_nb[0], activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate,return_sequences= True, go_backwards= True),
@@ -155,15 +125,15 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     """
     
     for _f in _fc_nb:
-        spec_x_conc = TimeDistributed(Dense(_f))(spec_x_conc)
-        spec_x_conc = Dropout(dropout_rate)(spec_x_conc)
+        spec_x_gcc = TimeDistributed(Dense(_f))(spec_x_gcc)
+        spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
  
 
     # Dense - out T x 6 CLASSES
-    spec_x_conc = TimeDistributed(Dense(data_out.shape[-1]))(spec_x_conc)
-    out = Activation('sigmoid', name='strong_out')(spec_x_conc)
+    spec_x_gcc = TimeDistributed(Dense(data_out.shape[-1]))(spec_x_gcc)
+    out = Activation('sigmoid', name='strong_out')(spec_x_gcc)
 
-    _model = Model(inputs=[spec_start, spec_start_gcc], outputs=out)
+    _model = Model(inputs= spec_start_gcc, outputs=out)
     adam=keras.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     _model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
     #_model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
@@ -235,9 +205,9 @@ class Metrics(keras.callbacks.Callback):
         self.er_mean_list = []
         self.epoch_count =0
     def on_epoch_end(self,epoch, batch, logs={}):
-        X_val,X_val_gcc, y_val = self.validation_data[0], self.validation_data[1],self.validation_data[2]
+        X_val_gcc, y_val = self.validation_data[0], self.validation_data[1]
         # Calculate the predictions on test data, in order to calculate ER and F scores
-        pred = model.predict([X_val,X_val_gcc])
+        pred = model.predict(X_val_gcc)
         #È true o false
         pred_thresh = pred > 0.5  #0.5 threeshold vedi paper
         #print pred_thresh
@@ -266,7 +236,7 @@ class Metrics(keras.callbacks.Callback):
             #resetto il patience count
             self._fail_count = 0
         #aggiorno
-	    print('epoch: ' , epoch,' Mean: ', self.er_mean ,' Custom ER: ', self._er,' Failcount: ', self._fail_count )
+	    print(' Mean: ', self.er_mean ,' Custom ER: ', self._er,' Failcount: ', self._fail_count ,' F1 :',self._f1)
         self._er_prev = self._er
         self.er_mean_prev = self.er_mean
         self._er_list.append(self._er)
@@ -286,7 +256,7 @@ class Metrics(keras.callbacks.Callback):
 is_mono = False  # True: mono-channel input, False: binaural input
 
 feat_folder = 'feat_gcc_norm/'
-train_story_folder = 'story/'
+train_story_folder = 'story_gcc/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
@@ -309,7 +279,7 @@ print('TRAINING PARAMETERS: nb_ch: {}, seq_len: {}, batch_size: {}, nb_epoch: {}
     nb_ch, seq_len, batch_size, nb_epoch, frames_1_sec))
 
 # Folder for saving model and training curves
-__models_dir = 'models/'
+__models_dir = 'models_gcc/'
 utils.create_folder(__models_dir)
 
 # CRNN model definition
@@ -319,8 +289,8 @@ cnn_pool_size_gcc = [5, 3, 2]   # Maxpooling across frequency. Length of cnn_poo
 rnn_nb = [64, 64]   # Q in the paper         # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
 fc_nb = [32]                # Number of FC nodes.  Length of fc_nb =  number of FC layers
 dropout_rate = 0.2 #0.5        # Dropout after each layer
-print('MODEL PARAMETERS:\n cnn_nb_filt: {}, cnn_pool_size_mbe: {}, rnn_nb, Q units: {}, fc_nb: {}, dropout_rate: {}'.format(
-    cnn_nb_filt, cnn_pool_size_mbe, rnn_nb, fc_nb, dropout_rate))
+print('MODEL PARAMETERS:\n cnn_nb_filt: {}, cnn_pool_size_gcc: {}, rnn_nb, Q units: {}, fc_nb: {}, dropout_rate: {}'.format(
+    cnn_nb_filt, cnn_pool_size_gcc, rnn_nb, fc_nb, dropout_rate))
 
 avg_er = list()
 avg_f1 = list()
@@ -331,29 +301,20 @@ for fold in [1, 2, 3, 4]:
     #--------------------------------------------------------
     # Load feature and labels, pre-process it
     #----------------------------------------------------------
-    #MBE
     
+    #MBE
+    #!!!! Y e Y_test servono quelli dell'mbe
     X_MBE, Y, X_test_MBE, Y_test = load_data(feat_folder, is_mono, fold)
     X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
     print("X_MBE shape Preprocessed: ", X_MBE.shape)
     print("Y_test shape Preprocessed: ", Y_test.shape)
-
-    #MBE per i TEST
-    """
-    X_MBE =np.random.rand(1024,80)
-    Y =np.random.rand(1024,6)
-    X_test_MBE =np.random.rand(512,80)
-    Y_test =np.zeros((512,6))
-    X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
-    print("X_mbe shape Preprocessed: ", X_MBE.shape)
-    """
-
 
     #GCC
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
     #NON SERVE PIU PREPROCESS_DATA_GCC --> COMPLESSI ELEIMINATI
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
+    print("Y_test_GCC shape Preprocessed: ", Y_test_GCC.shape)
 
     # GCC PER I TEST
     """
@@ -362,14 +323,6 @@ for fold in [1, 2, 3, 4]:
     X_test_GCC =np.zeros((512,180),dtype=np.complex_)
     Y_test_GCC =np.zeros((512,6))
     """
-
-    #------------------------------------------------
-    # 3D Conv layer Reshape
-    #------------------------------------------------
-    #MBE
-    X_MBE = X_MBE.reshape(X_MBE.shape[-4] ,1, X_MBE.shape[-3], X_MBE.shape[-2], X_MBE.shape[-1])
-    X_test_MBE = X_test_MBE.reshape(X_test_MBE.shape[-4] ,1, X_test_MBE.shape[-3], X_test_MBE.shape[-2], X_test_MBE.shape[-1]) #(?,1,2,256,40)
-    print("X_MBE 3DConv: ", X_MBE.shape)
     #GCC
     X_GCC = X_GCC.reshape(X_GCC.shape[-4] ,1, X_GCC.shape[-3], X_GCC.shape[-2], X_GCC.shape[-1])
     X_test_GCC = X_test_GCC.reshape(X_test_GCC.shape[-4] ,1, X_test_GCC.shape[-3], X_test_GCC.shape[-2], X_test_GCC.shape[-1]) #(?,1,3,256,60)
@@ -381,7 +334,7 @@ for fold in [1, 2, 3, 4]:
     # Load model
     #-------------------------------------------
     #L'output è uno quindi è uguale Y o Y_MBE, uguale per Y_test
-    model = get_model(X_MBE, X_GCC, Y, cnn_nb_filt, cnn_pool_size_mbe,cnn_pool_size_gcc, rnn_nb, fc_nb, nb_ch, gcc_ch)
+    model = get_model(X_GCC, Y, cnn_nb_filt,cnn_pool_size_gcc, rnn_nb, fc_nb, nb_ch, gcc_ch)
 
     #-------------------------------------------
     # Training
@@ -394,9 +347,9 @@ for fold in [1, 2, 3, 4]:
     my_metrics = Metrics()
 
     hist = model.fit(
-            [X_MBE,X_GCC], Y,
+            X_GCC, Y,
             batch_size=batch_size,
-            validation_data=[[X_test_MBE,X_test_GCC], Y_test],
+            validation_data=[X_test_GCC, Y_test],
             epochs=5,
             verbose=1,
             callbacks=[my_metrics]

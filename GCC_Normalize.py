@@ -69,8 +69,8 @@ for fold in [1, 2, 3, 4]:
     #240
     print('Normalizing 240')
     scaler_240 = preprocessing.StandardScaler()
-    X_train_240 = scaler_240 .fit_transform(X_train_240 )
-    X_test_240  = scaler_240 .transform(X_test_240 )
+    X_train_240 = scaler_240.fit_transform(X_train_240)
+    X_test_240  = scaler_240.transform(X_test_240 )
 
     print('Saving 240')
     normalized_feat_file_GCC_240 = os.path.join(
