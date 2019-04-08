@@ -4,7 +4,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import numpy as np
 
-data = np.load('feat_gcc_60/GCC_120_bin_fold1.npz')
+data = np.load('feat_gcc_norm/GCC_480_bin_fold1.npz')
 GCC = data['arr_0']  # shape (time,freq)
 print 'GCC shape : ', GCC.shape
 print 'GCC max : ', GCC.max()
@@ -19,7 +19,7 @@ plt.colorbar()
 #plt.clim(-6,6)  
 
 #plt.xlim(0, 40)
-#plt.ylim(100, 200)
+plt.ylim(500,1000)
 
 plt.xlabel('tau')
 plt.ylabel('time')
