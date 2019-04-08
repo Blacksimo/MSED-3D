@@ -232,6 +232,11 @@ class Metrics(keras.callbacks.Callback):
         self._f1 = 0
         self._f1_list = []
         self._cf_list = []
+        self.er_mean = 0
+        self.er_mean_batch = 0
+        self.er_mean_prev = 0
+        self.er_mean_list = []
+        self.epoch_count =0
     def on_epoch_end(self,epoch, batch, logs={}):
         X_val,X_val_gcc, y_val = self.validation_data[0], self.validation_data[1],self.validation_data[2]
         # Calculate the predictions on test data, in order to calculate ER and F scores
@@ -244,6 +249,9 @@ class Metrics(keras.callbacks.Callback):
         self._f1 = score_list['f1_overall_1sec']
         self._er = score_list['er_overall_1sec']
 
+        #error rate over epoch
+        self.er_mean_batch += self._er
+        self.er_mean= float(self.er_mean_batch) / epoch+1
         # Calculate confusion matrix
         test_pred_cnt = np.sum(pred_thresh, 2)
         Y_test_cnt = np.sum(y_val, 2)
@@ -251,23 +259,26 @@ class Metrics(keras.callbacks.Callback):
         conf_mat = conf_mat / (utils.eps + np.sum(conf_mat, 1)[:, None].astype('float'))
         self._cf_list.append(conf_mat)
 
-        if  self._er > self._er_prev:
+        #if  self._er > self._er_prev:
+        if self.er_mean > self.er_mean_prev:
             self._fail_count+=1
             if self._fail_count >= 10:
-                print('Epoch: ', epoch, ' Custom ER: ', self._er, ' Failcount: ', self._fail_count )
+                print('Early stopping ', 'Custom ER: ', self._er, ' Failcount: ', self._fail_count )
                 self.model.stop_training = True
         else:
             #resetto il patience count
             self._fail_count = 0
         #aggiorno
-	    print(' Prev: ', self._er_prev ,' Custom ER: ', self._er,' Failcount: ', self._fail_count )
+	    print('epoch: ' , epoch,' Mean: ', self.er_mean ,' Custom ER: ', self._er,' Failcount: ', self._fail_count )
         self._er_prev = self._er
+        self.er_mean_prev = self.er_mean
         self._er_list.append(self._er)
         self._f1_list.append(self._f1)
+        self.er_mean_list.append(self.er_mean)
         return
 
     def get_data(self):
-        return self._er, self._er_list, self._f1,self._f1_list,self._cf_list
+        return self._er, self._er_list, self._f1,self._f1_list,self._cf_list,self.er_mean_list
    
 
 
@@ -277,7 +288,7 @@ class Metrics(keras.callbacks.Callback):
 
 is_mono = False  # True: mono-channel input, False: binaural input
 
-feat_folder = 'feat/'
+feat_folder = 'feat_gcc_norm/'
 train_story_folder = 'story/'
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
@@ -305,7 +316,7 @@ __models_dir = 'models/'
 utils.create_folder(__models_dir)
 
 # CRNN model definition
-cnn_nb_filt = 64 #128            # CNN filter size
+cnn_nb_filt = 8 #128            # CNN filter size
 cnn_pool_size_mbe = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 cnn_pool_size_gcc = [5, 3, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 rnn_nb = [64, 64]   # Q in the paper         # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
@@ -343,7 +354,8 @@ for fold in [1, 2, 3, 4]:
 
     #GCC
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
-    X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data_GCC(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
+    #NON SERVE PIU PREPROCESS_DATA_GCC --> COMPLESSI ELEIMINATI
+    X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
 
     # GCC PER I TEST
@@ -388,12 +400,12 @@ for fold in [1, 2, 3, 4]:
             [X_MBE,X_GCC], Y,
             batch_size=batch_size,
             validation_data=[[X_test_MBE,X_test_GCC], Y_test],
-            epochs=3,
-            verbose=0,
+            epochs=5,
+            verbose=1,
             callbacks=[my_metrics]
         )
     print('Training END')
-    last_er, er_overall_1sec_list, last_f1, f1_overall_1sec_list, conf_mat_list  = my_metrics.get_data()
+    last_er, er_overall_1sec_list, last_f1, f1_overall_1sec_list, conf_mat_list, er_mean_list  = my_metrics.get_data()
     val_loss = hist.history.get('val_loss')
     tr_loss = hist.history.get('loss')
 
@@ -432,7 +444,7 @@ for fold in [1, 2, 3, 4]:
     print('Saving history array')
     tmp_feat_file = os.path.join(train_story_folder, '{}_story.npz'.format(
         fold))
-    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,conf_mat_list,best_index,val_loss,tr_loss)
+    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,conf_mat_list,best_index,val_loss,tr_loss,er_mean_list)
 
 
 print('\n\nMETRICS FOR ALL FOUR FOLDS: avg_er: {}, avg_f1: {}'.format(avg_er, avg_f1))
