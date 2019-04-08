@@ -38,7 +38,7 @@ def load_data_GCC(_feat_folder, _mono, _fold=None):
     feat_file_fold_120 = os.path.join(_feat_folder, 'GCC_120_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp_120 = np.load(feat_file_fold_120)
     _X_train_120, _Y_train_120, _X_test_120, _Y_test_120 = dmp_120['arr_0'],  dmp_120['arr_1'],  dmp_120['arr_2'],  dmp_120['arr_3']
-    print("_X_train_120: ", _X_train_120.shape)
+    #print("_X_train_120: ", _X_train_120.shape)
 
     feat_file_fold_240 = os.path.join(_feat_folder, 'GCC_240_{}_fold{}.npz'.format('mon' if _mono else 'bin', _fold))
     dmp_240 = np.load(feat_file_fold_240)
@@ -220,9 +220,6 @@ def preprocess_data_GCC(_X, _Y, _X_test, _Y_test, _seq_len, _nb_ch):
     _X_test = utils.split_multi_channels_COMPLEX(_X_test, _nb_ch)
     return _X, _Y, _X_test, _Y_test
 
-
-
-
 class Metrics(keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self._er = 0
@@ -294,7 +291,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 64   # Decrease this if you want to run on smaller GPU's
+batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 1000      # Training epochs
 patience = 100  # Patience for early stopping
@@ -316,7 +313,7 @@ __models_dir = 'models/'
 utils.create_folder(__models_dir)
 
 # CRNN model definition
-cnn_nb_filt = 8 #128            # CNN filter size
+cnn_nb_filt = 64 #128            # CNN filter size
 cnn_pool_size_mbe = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 cnn_pool_size_gcc = [5, 3, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 rnn_nb = [64, 64]   # Q in the paper         # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
