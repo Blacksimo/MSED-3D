@@ -229,7 +229,7 @@ class Metrics(keras.callbacks.Callback):
         #if  self._er > self._er_prev:
         if self.er_mean > self.er_mean_prev:
             self._fail_count+=1
-            if self._fail_count >= 10:
+            if self._fail_count >= 100:
                 print('Early stopping ', 'Custom ER: ', self._er, ' Failcount: ', self._fail_count )
                 self.model.stop_training = True
         else:
@@ -261,7 +261,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 8   # Decrease this if you want to run on smaller GPU's
+batch_size = 128   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 1000      # Training epochs
 patience = 100  # Patience for early stopping

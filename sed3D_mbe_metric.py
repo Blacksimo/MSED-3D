@@ -230,7 +230,7 @@ class Metrics(keras.callbacks.Callback):
         #if  self._er > self._er_prev:
         if self.er_mean > self.er_mean_prev:
             self._fail_count+=1
-            if self._fail_count >= 10:
+            if self._fail_count >= 100:
                 print('Early stopping ', 'Custom ER: ', self._er, ' Failcount: ', self._fail_count )
                 self.model.stop_training = True
         else:

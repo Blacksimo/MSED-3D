@@ -292,14 +292,12 @@ for audio_filename in os.listdir(audio_folder):
                             10 :FFT_120, 11 :FFT_240, 12 :FFT_480}  #4/4
         
         output = mp.Queue()
-        
         processes = [mp.Process(target=extract_gcc, args=(multiprocess_diz[res],res,output,tqdm(total=60,position=res)))for res in range(1,13)]
        # print('Processes started')
         # Run processes
         for p in processes:
             p.start()
         
-
         results =  [output.get() for p in processes]
 
         # Exit the completed processes
