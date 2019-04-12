@@ -105,7 +105,7 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
             spec_x_gcc = Activation('relu')(spec_x_gcc)
             spec_x_gcc = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_gcc[_i]))(spec_x_gcc)
             spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
-            spec_x_gcc = Reshape((-1,  data_in_gcc.shape[-2], 8))(spec_x_gcc)
+            spec_x_gcc = Reshape((-1,  data_in_gcc.shape[-2], 12))(spec_x_gcc)
         else:
             spec_x_gcc = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x_gcc)
             spec_x_gcc = BatchNormalization(axis=1)(spec_x_gcc)
@@ -414,7 +414,7 @@ for fold in [1, 2, 3, 4]:
 
 
     #GET THE EPOCH WITH min ER  framewise
-    best_index = np.argmin(er_overall_1sec_list)
+    best_index = np.argmin(er_overall_1sec_list) #è per il best er 
     best_er = er_overall_1sec_list[best_index]
     f1_for_best_er = f1_overall_1sec_list[best_index]
     best_conf_mat = conf_mat_list[best_index]
