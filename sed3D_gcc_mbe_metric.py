@@ -291,7 +291,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 
 
 nb_ch = 1 if is_mono else 2
-batch_size = 8   # Decrease this if you want to run on smaller GPU's
+batch_size = 64  # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 1000      # Training epochs
 patience = 100  # Patience for early stopping
@@ -318,7 +318,7 @@ cnn_pool_size_mbe = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_poo
 cnn_pool_size_gcc = [5, 3, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
 rnn_nb = [64, 64]   # Q in the paper         # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
 fc_nb = [32]                # Number of FC nodes.  Length of fc_nb =  number of FC layers
-dropout_rate = 0.2 #0.5        # Dropout after each layer
+dropout_rate = 0.5 #0.5        # Dropout after each layer
 print('MODEL PARAMETERS:\n cnn_nb_filt: {}, cnn_pool_size_mbe: {}, rnn_nb, Q units: {}, fc_nb: {}, dropout_rate: {}'.format(
     cnn_nb_filt, cnn_pool_size_mbe, rnn_nb, fc_nb, dropout_rate))
 

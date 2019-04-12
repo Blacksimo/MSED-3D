@@ -12,12 +12,18 @@ import numpy as np
 5,tr_loss,
 6,er_mean_list
 """
-"""
+
+#'colab/3D/gcc_mbe_dropout=0.2'
+#'colab/3D/mbe_dropout=0.2'
+#'tesla/4fold_0.5_0.0001_pool_error'
+path_folder = 'colab/3D/mbe_dropout=0.5'
+fold = 2
+
 #---------------------------average---------------------------------------------------
 average_f1 = []
 average_er = []
 for f in [1,2,3,4]:
-    data_avg = np.load('colab/3D/mbe_dropout=0.2/{}_story.npz'.format(f))
+    data_avg = np.load('{}/{}_story.npz'.format(path_folder,f))
     er_overall_1sec_list_avg=data_avg['arr_0']
     f1_overall_1sec_list_avg=data_avg['arr_1']
     best_index_avg=data_avg['arr_3']
@@ -28,11 +34,9 @@ print average_f1
 print 'best f1 mean :', np.mean(average_f1)
 print 'best er mean :', np.mean(average_er)
 #--------------------------------------------------------------------------------------------
-"""
-#colab/3D/mbe_dropout=0.2
 
-data = np.load('colab/3D/gcc_mbe_dropout=0.2/1_story.npz')
-#data = np.load('colab/2D/sed_dropout=0.2/1_story.npz')
+data = np.load('{}/{}_story.npz'.format(path_folder,fold))
+
 
 er_overall_1sec_list=data['arr_0']
 f1_overall_1sec_list=data['arr_1']
