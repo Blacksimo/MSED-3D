@@ -101,14 +101,14 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
             spec_x_gcc = Conv3D(filters=_cnn_nb_filt, kernel_size=(_gcc_ch, 3, 3), padding='same')(spec_x_gcc)
             spec_x_gcc = BatchNormalization(axis=1)(spec_x_gcc)
             spec_x_gcc = Activation('relu')(spec_x_gcc)
-            spec_x_gcc = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_mbe[_i]))(spec_x_gcc)
+            spec_x_gcc = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_gcc[_i]))(spec_x_gcc)
             spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
-            spec_x_gcc = Reshape((-1,  data_in_mbe.shape[-2], 8))(spec_x_gcc)
+            spec_x_gcc = Reshape((-1,  data_in_mbe.shape[-2], 12))(spec_x_gcc)
         else:
             spec_x_gcc = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x_gcc)
             spec_x_gcc = BatchNormalization(axis=1)(spec_x_gcc)
             spec_x_gcc = Activation('relu')(spec_x_gcc)
-            spec_x_gcc = MaxPooling2D(pool_size=(1, _cnn_pool_size_mbe[_i]))(spec_x_gcc)
+            spec_x_gcc = MaxPooling2D(pool_size=(1, _cnn_pool_size_gcc[_i]))(spec_x_gcc)
             spec_x_gcc = Dropout(dropout_rate)(spec_x_gcc)
     spec_x_gcc = Permute((2, 1, 3))(spec_x_gcc)
     spec_x_gcc = Reshape((data_in_gcc.shape[-2], -1))(spec_x_gcc)
@@ -162,7 +162,10 @@ def get_model(data_in_mbe, data_in_gcc, data_out, _cnn_nb_filt, _cnn_pool_size_m
     out = Activation('sigmoid', name='strong_out')(spec_x_conc)
 
     _model = Model(inputs=[spec_start, spec_start_gcc], outputs=out)
-    _model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
+    #_model.compile(optimizer='Adam', loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
+     adam=keras.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    _model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy']) #lr = 1x10-4
+
     _model.summary()
     return _model
 
@@ -276,11 +279,7 @@ for fold in [1, 2, 3, 4]:
     print("Y_test shape Preprocessed: ", Y_test.shape)
 
     #GCC
-    #X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
-    X_GCC =np.random.rand(181717,180)
-    Y_GCC =np.random.rand(181717,6)
-    X_test_GCC =np.random.rand(56378,180)
-    Y_test_GCC =np.random.rand(56378,6)
+    X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = load_data_GCC(feat_folder, is_mono, fold)
     X_GCC, Y_GCC, X_test_GCC, Y_test_GCC = preprocess_data(X_GCC, Y_GCC, X_test_GCC, Y_test_GCC, seq_len, gcc_ch)
     print("X_GCC shape Preprocessed: ", X_GCC.shape)
 

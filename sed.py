@@ -41,7 +41,7 @@ def get_model(data_in, data_out, _cnn_nb_filt, _cnn_pool_size, _rnn_nb, _fc_nb):
     for _r in _rnn_nb:
         spec_x = Bidirectional(
             GRU(_r, activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate, return_sequences=True),
-            merge_mode='mul')(spec_x)
+            merge_mode='concat')(spec_x)
 
     for _f in _fc_nb:
         spec_x = TimeDistributed(Dense(_f))(spec_x)
@@ -102,7 +102,7 @@ __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d
 nb_ch = 1 if is_mono else 2
 batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
-nb_epoch = 500      # Training epochs
+nb_epoch = 1      # Training epochs
 patience = int(0.25 * nb_epoch)  # Patience for early stopping
 
 # Number of frames in 1 second, required to calculate F and ER for 1 sec segments.
@@ -116,13 +116,16 @@ print('TRAINING PARAMETERS: nb_ch: {}, seq_len: {}, batch_size: {}, nb_epoch: {}
     nb_ch, seq_len, batch_size, nb_epoch, frames_1_sec))
 
 # Folder for saving model and training curves
-__models_dir = 'models/'
+__models_dir = 'models_sed/'
 utils.create_folder(__models_dir)
+
+_train_story_folder='story_sed/'
+utils.create_folder(_train_story_folder)
 
 # CRNN model definition
 cnn_nb_filt = 64 #128            # CNN filter size
 cnn_pool_size = [5, 2, 2]   # Maxpooling across frequency. Length of cnn_pool_size =  number of CNN layers
-rnn_nb = [32, 32]           # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
+rnn_nb = [64, 64]   #32,32        # Number of RNN nodes.  Length of rnn_nb =  number of RNN layers
 fc_nb = [32]                # Number of FC nodes.  Length of fc_nb =  number of FC layers
 dropout_rate = 0.2 #0.5         # Dropout after each layer
 print('MODEL PARAMETERS:\n cnn_nb_filt: {}, cnn_pool_size: {}, rnn_nb: {}, fc_nb: {}, dropout_rate: {}'.format(
@@ -189,6 +192,14 @@ for fold in [1, 2, 3, 4]:
             break
     avg_er.append(best_er)
     avg_f1.append(f1_for_best_er)
+
+
+    #save
+    print('Saving history array')
+    tmp_feat_file = os.path.join(_train_story_folder, '{}_story.npz'.format(
+        fold))
+    np.savez(tmp_feat_file, er_overall_1sec_list,f1_overall_1sec_list,val_loss,tr_loss)
+
     print('saved model for the best_epoch: {} with best_f1: {} f1_for_best_er: {}'.format(
         best_epoch, best_er, f1_for_best_er))
     print('best_conf_mat: {}'.format(best_conf_mat))

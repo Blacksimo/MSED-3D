@@ -70,23 +70,15 @@ def get_model(data_in_mbe, data_out, _cnn_nb_filt, _cnn_pool_size_mbe, _rnn_nb, 
     #----------------------------------------------------------------------------------------------------------------------
     # MBE branch
     #----------------------------------------------------------------------------------------------------------------------
-    spec_start = Input(shape=(data_in_mbe.shape[-4], data_in_mbe.shape[-3], data_in_mbe.shape[-2], data_in_mbe.shape[-1]))
+    spec_start = Input(shape=( data_in_mbe.shape[-3], data_in_mbe.shape[-2], data_in_mbe.shape[-1]))
     spec_x = spec_start
     
     for _i, _cnt in enumerate(_cnn_pool_size_mbe):
-        if _i == 0:
-            spec_x = Conv3D(filters=_cnn_nb_filt, kernel_size=(_nb_ch, 3, 3), padding='same')(spec_x)
-            spec_x = BatchNormalization(axis=1)(spec_x)
-            spec_x = Activation('relu')(spec_x)
-            spec_x = MaxPooling3D(pool_size=(1, 1 , _cnn_pool_size_mbe[_i]))(spec_x)
-            spec_x = Dropout(dropout_rate)(spec_x)
-            spec_x = Reshape((-1,  data_in_mbe.shape[-2], 8))(spec_x)
-        else:
-            spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
-            spec_x = BatchNormalization(axis=1)(spec_x)
-            spec_x = Activation('relu')(spec_x)
-            spec_x = MaxPooling2D(pool_size=(1, _cnn_pool_size_mbe[_i]))(spec_x)
-            spec_x = Dropout(dropout_rate)(spec_x)
+        spec_x = Conv2D(filters=_cnn_nb_filt, kernel_size=(3, 3), padding='same')(spec_x)
+        spec_x = BatchNormalization(axis=1)(spec_x)
+        spec_x = Activation('relu')(spec_x)
+        spec_x = MaxPooling2D(pool_size=(1, _cnn_pool_size_mbe[_i]))(spec_x)
+        spec_x = Dropout(dropout_rate)(spec_x)
     spec_x = Permute((2, 1, 3))(spec_x)
     spec_x = Reshape((data_in_mbe.shape[-2], -1))(spec_x)
     print("spec_x: ", spec_x.shape)
@@ -257,7 +249,8 @@ class Metrics(keras.callbacks.Callback):
 is_mono = False  # True: mono-channel input, False: binaural input
 
 feat_folder = 'feat/'
-train_story_folder = 'story_mbe/'
+train_story_folder = 'story_mbe_cnn/'
+utils.create_folder(train_story_folder)
 __fig_name = '{}_{}'.format('mon' if is_mono else 'bin', time.strftime("%Y_%m_%d_%H_%M_%S"))
 
 
@@ -265,8 +258,6 @@ nb_ch = 1 if is_mono else 2
 batch_size = 8   # Decrease this if you want to run on smaller GPU's
 seq_len = 256       # Frame sequence length. Input to the CRNN.
 nb_epoch = 1000      # Training epochs
-patience = 100  # Patience for early stopping
-#patience = int(0.25 * nb_epoch)  # Patience for early stopping
 gcc_ch = 3 #gcc resolutions 
 
 # Number of frames in 1 second, required to calculate F and ER for 1 sec segments.
@@ -280,7 +271,7 @@ print('TRAINING PARAMETERS: nb_ch: {}, seq_len: {}, batch_size: {}, nb_epoch: {}
     nb_ch, seq_len, batch_size, nb_epoch, frames_1_sec))
 
 # Folder for saving model and training curves
-__models_dir = 'models_mbe/'
+__models_dir = 'models_mbe_cnn/'
 utils.create_folder(__models_dir)
 
 # CRNN model definition
@@ -318,7 +309,7 @@ for fold in [1, 2, 3, 4]:
     X_MBE, Y, X_test_MBE, Y_test = preprocess_data(X_MBE, Y, X_test_MBE, Y_test, seq_len, nb_ch)
     print("X_mbe shape Preprocessed: ", X_MBE.shape)
     """
-
+    """
     #------------------------------------------------
     # 3D Conv layer Reshape
     #------------------------------------------------
@@ -326,7 +317,7 @@ for fold in [1, 2, 3, 4]:
     X_MBE = X_MBE.reshape(X_MBE.shape[-4] ,1, X_MBE.shape[-3], X_MBE.shape[-2], X_MBE.shape[-1])
     X_test_MBE = X_test_MBE.reshape(X_test_MBE.shape[-4] ,1, X_test_MBE.shape[-3], X_test_MBE.shape[-2], X_test_MBE.shape[-1]) #(?,1,2,256,40)
     print("X_MBE 3DConv: ", X_MBE.shape)
-
+    """
 
     #------------------------------------------
     # Load model
