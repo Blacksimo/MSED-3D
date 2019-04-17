@@ -15,14 +15,16 @@ import numpy as np
 
 #'colab/3D/gcc_mbe_dropout=0.2'
 #'colab/3D/mbe_dropout=0.2'
+#'colab/2D/mbe_dropout=0.5'
 #'tesla/4fold_0.5_0.0001_pool_error'
-path_folder = 'colab/3D/mbe_dropout=0.5'
-fold = 2
+#'tesla/gcc_mbe_dropout=0.5'
+path_folder ='tesla/gcc_mbe_128'
+fold = 3
 
 #---------------------------average---------------------------------------------------
 average_f1 = []
 average_er = []
-for f in [1,2,3,4]:
+for f in [1,2,3]:
     data_avg = np.load('{}/{}_story.npz'.format(path_folder,f))
     er_overall_1sec_list_avg=data_avg['arr_0']
     f1_overall_1sec_list_avg=data_avg['arr_1']
