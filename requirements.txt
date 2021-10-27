@@ -11,7 +11,7 @@ chardet==3.0.4
 cloudpickle==0.8.0
 configparser==3.7.3
 cycler==0.10.0
-dask==1.1.4
+dask==2021.10.0
 decorator==4.4.0
 dill==0.2.9
 enum34==1.1.6
