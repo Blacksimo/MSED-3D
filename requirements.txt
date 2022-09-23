@@ -52,7 +52,7 @@ pox==0.2.5
 ppft==1.6.4.9
 progressbar2==3.39.3
 prompt-toolkit==1.0.15
-protobuf==3.7.0
+protobuf==3.18.3
 ptyprocess==0.6.0
 pycodestyle==2.5.0
 Pygments==2.3.1
